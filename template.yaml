@@ -8,35 +8,36 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 300
     MemorySize: 128
 
 Resources:
-  HelloWorldFunction:
+  SlackEventsApiHandlerFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: hello_world/
-      Handler: app.lambda_handler
+      CodeUri: lib/
+      Handler: bot.lambda_handler
       Runtime: ruby3.2
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
+        # For the Slack Events API handler endpoint.
+        EventsAPI:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /hello
-            Method: get
+            Path: /events
+            Method: post
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  SlackEventsApiEndpointUrl:
+    Description: "API Gateway endpoint URL for Prod stage for Slack Events API handler function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/events/"
+  SlackEventsApiHandlerFunction:
+    Description: "Slack Events API handler Lambda Function ARN"
+    Value: !GetAtt SlackEventsApiHandlerFunction.Arn
+  SlackEventsApiFunctionIamRole:
+    Description: "Implicit IAM Role created for Slack Events API handler function"
+    Value: !GetAtt SlackEventsApiHandlerFunctionRole.Arn
