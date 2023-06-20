@@ -17,6 +17,10 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
+stack_name = "ruby-slack-openai-chat-bot-development"
+s3_prefix = "ruby-slack-openai-chat-bot-development"
+region = "us-east-1"
+image_repositories = []
 
 [default.package.parameters]
 resolve_s3 = true

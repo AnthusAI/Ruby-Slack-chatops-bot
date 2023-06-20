@@ -17,7 +17,7 @@ Resources:
     Properties:
       CodeUri: lib/
       Handler: bot.lambda_handler
-      Runtime: ruby3.2
+      Runtime: ruby2.7
       Architectures:
         - x86_64
       Events:
@@ -27,6 +27,19 @@ Resources:
           Properties:
             Path: /events
             Method: post
+      Policies:
+      - Statement:
+        - Sid: SSMDescribeParametersPolicy
+          Effect: Allow
+          Action:
+          - ssm:DescribeParameters
+          Resource: '*'
+        - Sid: SSMGetParameterPolicy
+          Effect: Allow
+          Action:
+          - ssm:GetParameters
+          - ssm:GetParameter
+          Resource: '*'
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
