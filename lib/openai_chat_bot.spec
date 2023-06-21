@@ -1,5 +1,5 @@
 require_relative 'spec_helper'
-require_relative 'gpt'
+require_relative 'openai_chat_bot'
 
 describe 'OpenAI' do
   let(:slack_events_api_handler) { instance_double('SlackEventsAPIHandlerHandler') }

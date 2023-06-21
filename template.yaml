@@ -5,7 +5,6 @@ Description: >
 
   Sample SAM Template for ruby-slack-openai-chat-bot
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 300
@@ -13,20 +12,18 @@ Globals:
 
 Resources:
   SlackEventsAPIHandlerHandlerFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function 
     Properties:
       CodeUri: lib/
-      Handler: bot.lambda_handler
+      Handler: sqs_message_processor.lambda_handler
       Runtime: ruby2.7
       Architectures:
         - x86_64
       Events:
-        # For the Slack Events API handler endpoint.
-        EventsAPI:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        SlackEvent:
+          Type: SQS
           Properties:
-            Path: /events
-            Method: post
+            Queue: !GetAtt SlackEventsQueue.Arn
       Policies:
       - Statement:
         - Sid: SSMDescribeParametersPolicy
@@ -40,17 +37,49 @@ Resources:
           - ssm:GetParameters
           - ssm:GetParameter
           Resource: '*'
+  
+  SlackEventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+          VisibilityTimeout: 300
+
+  APIGatewayHandlerFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: lib/
+      Handler: api_gateway.lambda_handler
+      Runtime: ruby2.7
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref SlackEventsQueue
+      Events:
+        EventsAPI:
+          Type: Api 
+          Properties:
+            Path: /events
+            Method: post
+      Policies:
+        - Statement:
+          - Sid: SSMDescribeParametersPolicy
+            Effect: Allow
+            Action:
+            - ssm:DescribeParameters
+            Resource: '*'
+          - Sid: SSMGetParameterPolicy
+            Effect: Allow
+            Action:
+            - ssm:GetParameters
+            - ssm:GetParameter
+            Resource: '*'
+          - Sid: SQSSendMessagePolicy
+            Effect: Allow
+            Action:
+            - sqs:SendMessage
+            Resource: !GetAtt SlackEventsQueue.Arn
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   SlackEventsAPIHandlerEndpointUrl:
     Description: "API Gateway endpoint URL for Prod stage for Slack Events API handler function"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/events/"
-  SlackEventsAPIHandlerHandlerFunction:
-    Description: "Slack Events API handler Lambda Function ARN"
-    Value: !GetAtt SlackEventsAPIHandlerHandlerFunction.Arn
-  SlackEventsAPIHandlerFunctionIamRole:
-    Description: "Implicit IAM Role created for Slack Events API handler function"
-    Value: !GetAtt SlackEventsAPIHandlerHandlerFunctionRole.Arn

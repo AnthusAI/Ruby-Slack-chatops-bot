@@ -47,21 +47,21 @@ describe 'SlackEventsAPIHandler' do
 
   let(:app_mention_event) do
     {
-      "token": "ZZZZZZWSxiZZZ2yIvs3peJ",
-      "team_id": "T061EG9R6",
-      "api_app_id": "A0MDYCDME",
-      "event": {
-          "type": "app_mention",
-          "user": "W021FGA1Z",
-          "text": "You can count on <@U0LAN0Z89> for an honorable mention.",
-          "ts": "1515449483.000108",
-          "channel": "C123ABC456",
-          "event_ts": "1515449483000108"
+      "token" => "ZZZZZZWSxiZZZ2yIvs3peJ",
+      "team_id" => "T061EG9R6",
+      "api_app_id" => "A0MDYCDME",
+      "event" => {
+          "type" => "app_mention",
+          "user" => "W021FGA1Z",
+          "text" => "You can count on <@U0LAN0Z89> for an honorable mention.",
+          "ts" => "1515449483.000108",
+          "channel" => "C123ABC456",
+          "event_ts" => "1515449483000108"
       },
-      "type": "event_callback",
-      "event_id": "Ev0MDYHUEL",
-      "event_time": 1515449483000108,
-      "authed_users": [
+      "type" => "event_callback",
+      "event_id" => "Ev0MDYHUEL",
+      "event_time" => 1515449483000108,
+      "authed_users" => [
           "U0LAN0Z89"
       ]
     }.to_json
@@ -110,19 +110,19 @@ describe 'SlackEventsAPIHandler' do
   describe '#is_event_from_me?' do
 
     it 'returns true when the event is from the app' do
-      event = JSON.parse(message_event)
-      event['event']['app_id'] = 'A05D7UH7GHH'
+      massaged_event = JSON.parse(message_event)
+      massaged_event['event']['app_id'] = 'A05D7UH7GHH'
 
-      slack_events_api = SlackEventsAPIHandler.new(event.to_json)
+      slack_events_api = SlackEventsAPIHandler.new(massaged_event.to_json)
 
       expect(slack_events_api.send(:is_event_from_me?)).to eq(true)
     end
 
     it 'returns false when the event is not from the app' do
-      event = JSON.parse(message_event)
-      event['event']['app_id'] = 'SomeOtherAppID'
+      massaged_event = JSON.parse(message_event)
+      massaged_event['event']['app_id'] = 'SomeOtherAppID'
 
-      slack_events_api = SlackEventsAPIHandler.new(event.to_json)
+      slack_events_api = SlackEventsAPIHandler.new(massaged_event.to_json)
 
       expect(slack_events_api.send(:is_event_from_me?)).to eq(false)
     end
@@ -153,8 +153,7 @@ describe 'SlackEventsAPIHandler' do
     end
   
     it 'fetches conversation history from a channel' do
-      event = JSON.parse(message_event)
-      history = SlackEventsAPIHandler.new(event.to_json).
+      history = SlackEventsAPIHandler.new(message_event.to_json).
         send(:get_conversation_history, channel_id)
       expect(history.length).to eq(3)
       expect(history[0]['user_id']).to eq(bot_id)
@@ -167,7 +166,7 @@ describe 'SlackEventsAPIHandler' do
   end
   
   describe '#get_user_profile' do
-    let(:event) { JSON.parse(message_event) }
+    let(:event) { message_event }
     let(:bot) { SlackEventsAPIHandler.new(event.to_json) }
     let(:user_id) { 'U38CHGBLL' }
     let(:http) { instance_double(Net::HTTP) }

@@ -7,14 +7,17 @@ This Ruby code packaged as a serverless AWS SAM app serves as a bridge between S
 The application is based on AWS Lambda and is triggered by events from the Slack Events API. This means that whenever a user posts a message in the linked Slack channel, an event is sent to our Lambda function, which processes the event and sends a response back to the Slack channel. The core processing logic is encapsulated in a Ruby class called `SlackEventsAPIHandler`.
 
 ```mermaid
-graph LR
-    A[Slack User] -- Sends Message --> B((Slack API))
-    B -- Triggers Event --> C{AWS Lambda}
-    C -- Executes --> D[SlackEventsAPIHandler]
-    D -- Sends Request --> E{OpenAI API}
-    E -- Returns Response --> D
-    D -- Sends Response --> B
-    B -- Posts Response --> A
+graph TD
+    A[Slack User] -- sends message --> B((Slack API))
+    B -- triggers message event --> C{AWS Lambda\nin API Gateway}
+    C -- posts message --> F((SQS Queue))
+    C -- responds successfully\nimmediately --> B
+    F -- triggers event --> G{AWS Lambda\non SQS event}
+    G -- executes --> D[SlackEventsAPIHandler]
+    D -- sends message event --> E{OpenAI API}
+    E -- returns response --> D
+    D -- sends chat message --> B
+    B -- posts message --> A
 ```
 
 The `SlackEventsAPIHandler` class is responsible for parsing incoming Slack events, dispatching them to the correct handler based on their type, and returning the appropriate response. Currently, it supports two types of events: `url_verification` and `message`.
@@ -29,7 +32,7 @@ We have now implemented basic interaction with the OpenAI API. A separate GPT cl
 
 ## Architecture
 
-This project is a serverless application based on the AWS Serverless Application Model (SAM). It uses AWS Lambda for running the application code in response to events, such as a new message in the Slack channel.
+This project is a serverless application based on the AWS Serverless Application Model (SAM). It uses AWS Lambda for running the application code in response to events, such as a new message in the Slack channel.  It also uses AWS SQS to asynchronously decouple the event receiving and processing stages into two separate Lambda functions: One for API Gateway to call when the Slack API sends an event, and the other to process the event asynchronously.
 
 ## Configuration
 

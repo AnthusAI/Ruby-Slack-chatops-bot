@@ -3,15 +3,15 @@ require 'net/http'
 require 'uri'
 require 'aws-sdk-ssm'
 require 'awesome_print'
-require_relative 'gpt'
+require_relative 'openai_chat_bot'
 
 class SlackEventsAPIHandler
   attr_reader :app_id, :user_id
 
-  def initialize(event)
+  def initialize(slack_event)
     @logger = Logger.new(STDOUT)
-    @event = JSON.parse(event)
-    @logger.info("Slack event: #{@event}")
+    @slack_event = JSON.parse(slack_event)
+    @logger.info("Slack event: #{@slack_event}")
     
     ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
     environment = ENV['ENV'] || 'development'
@@ -32,8 +32,14 @@ class SlackEventsAPIHandler
     ).parameter.value
   end
 
+  def event_type
+    @slack_event['type']
+  end
+
   def dispatch
-    case @event['type']
+    @logger.warn("Dispatching event of type: #{event_type}")
+
+    case event_type
     when 'url_verification'
       url_confirmation
     when 'event_callback'
@@ -44,11 +50,13 @@ class SlackEventsAPIHandler
   end
 
   def url_confirmation
-    @event['challenge']
+    @slack_event['challenge']
   end
 
   def handle_event_callback
-    case @event['event']['type']
+    @logger.debug("Handling event callback: #{@slack_event}")
+
+    case @slack_event['event']['type']
     when 'message'
       message
     when 'app_mention'
@@ -59,12 +67,14 @@ class SlackEventsAPIHandler
   end
 
   def message
-    message_text = @event['event']['text']
+    message_text = @slack_event['event']['text']
     @logger.info("Slack message event with text: \"#{message_text}\"")
   
     if event_mentions_me? and not is_event_from_me?
+      @logger.info("Responding to message event.")
+
       conversation_history = get_conversation_history(
-        @event['event']['channel'])
+        @slack_event['event']['channel'])
     
       gpt = GPT.new(
         slack_events_api_handler: self
@@ -73,17 +83,20 @@ class SlackEventsAPIHandler
       response = gpt.get_response(chat_messages_list)
     
       send_message(
-        @event['event']['channel'], response)
+        @slack_event['event']['channel'], response)
+    else
+      @logger.info("Not responding to message event.")
     end
     
   end
 
   def app_mention
-    message_text = @event['event']['text']
+    message_text = @slack_event['event']['text']
     @logger.info("Slack message event with text: \"#{message_text}\"")
   end
   
   def send_message(channel, text)
+    @logger.info("Sending message to Slack: #{text}")
     uri = URI.parse("https://slack.com/api/chat.postMessage")
   
     request = Net::HTTP::Post.new(uri)
@@ -106,14 +119,16 @@ class SlackEventsAPIHandler
   end
 
   def event_mentions_me?
-    event_mentions_me = @event['event']['text'].include?(@user_id)
-    @logger.info("does \"#{@event['event']['text']}\" mention the ID of this user, \"#{@user_id}\"?  #{event_mentions_me} ? : 'yes' : 'no'")
-    event_mentions_me
+    message_text = @slack_event['event']['text']
+    message_text_mentions_me = message_text.include?(@user_id)
+    @logger.info("does \"#{@slack_event['text']}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
+    message_text_mentions_me
   end
 
   def is_event_from_me?
-    is_event_from_me = @event['event']['app_id'] == @app_id
-    @logger.info("is \"#{@event['event']['app_id']}\" the ID of this app, \"#{@app_id}\"?  #{is_event_from_me} ? : 'yes' : 'no'")
+    app_id = @slack_event['event']['app_id']
+    is_event_from_me = app_id == @app_id
+    @logger.info("is \"#{app_id}\" the ID of this app, \"#{@app_id}\"?  #{is_event_from_me ? 'Yes!' : 'No.'}")
     is_event_from_me
   end
 

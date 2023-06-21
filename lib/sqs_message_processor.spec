@@ -1,7 +1,7 @@
-require_relative 'bot'
+require_relative 'sqs_message_processor'
 require_relative 'slack_events_api'
 
-describe 'Bot' do
+describe 'SlackEventsAPIHandler' do
   let(:event_body) do
     {
       'token' => 'Jhj5dZrVaK7ZwHHjRyZWjbDl',
@@ -9,13 +9,23 @@ describe 'Bot' do
       'type' => 'url_verification'
     }.to_json
   end
+  let(:lambda_event) do
+    {
+      'Records' => [
+        {
+          'body' => event_body
+        }
+      ]
+    }
+  end
 
   it 'creates a SlackEventsAPIHandler object and calls dispatch on it' do
     slack_event = instance_double('SlackEventsAPIHandler')
 
-    allow(SlackEventsAPIHandler).to receive(:new).with(event_body).and_return(slack_event)
+    allow(SlackEventsAPIHandler).to receive(:new).with(event_body).
+      and_return(slack_event)
     expect(slack_event).to receive(:dispatch)
 
-    lambda_handler(event: { 'body' => event_body }, context: {})
+    lambda_handler(event: lambda_event, context: {})
   end
 end
