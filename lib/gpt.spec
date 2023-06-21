@@ -83,7 +83,23 @@ describe 'OpenAI' do
               "real_name": "ryan"
             },
             "message": "Hi, bot!"
+          },
+
+          {
+            "user_id": "U38CHGBLL",
+            "user_profile": {
+              "real_name": "ryan"
+            },
+            "message": "On and on and on and..."
+          },
+          {
+            "user_id": "U38CHGBLL",
+            "user_profile": {
+              "real_name": "ryan"
+            },
+            "message": "On and on and on and..."
           }
+
         ]
       JSON
     )
@@ -91,13 +107,14 @@ describe 'OpenAI' do
 
   before do
     allow(slack_events_api_handler).
-      to receive(:bot_id).and_return('U05D815D3PD')
+      to receive(:user_id).and_return('U05D815D3PD')
   end
 
   describe '#build_chat_messages_list' do
     before(:each) do
       @messages_list = GPT.new(
-        slack_events_api_handler: slack_events_api_handler
+        slack_events_api_handler: slack_events_api_handler,
+        max_conversation_history_length: 11
       ).build_chat_messages_list(conversation_history)
     end
     

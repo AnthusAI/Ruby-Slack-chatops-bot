@@ -6,6 +6,8 @@ describe 'SlackEventsAPIHandler' do
     allow_any_instance_of(Aws::SSM::Client).to receive(:get_parameter) do |_, args|
       if args[:name].include?('app_id')
         double(parameter: double(value: 'A05D7UH7GHH'))
+      elsif args[:name].include?('user_id')
+        double(parameter: double(value: 'U05D815D3PD'))
       elsif args[:name].include?('access_token')
         double(parameter: double(value: 'xoxb-your-token'))
       end
@@ -43,6 +45,28 @@ describe 'SlackEventsAPIHandler' do
     }.to_json
   end
 
+  let(:app_mention_event) do
+    {
+      "token": "ZZZZZZWSxiZZZ2yIvs3peJ",
+      "team_id": "T061EG9R6",
+      "api_app_id": "A0MDYCDME",
+      "event": {
+          "type": "app_mention",
+          "user": "W021FGA1Z",
+          "text": "You can count on <@U0LAN0Z89> for an honorable mention.",
+          "ts": "1515449483.000108",
+          "channel": "C123ABC456",
+          "event_ts": "1515449483000108"
+      },
+      "type": "event_callback",
+      "event_id": "Ev0MDYHUEL",
+      "event_time": 1515449483000108,
+      "authed_users": [
+          "U0LAN0Z89"
+      ]
+    }.to_json
+  end
+
   describe '#dispatch' do
 
     it 'should call url_confirmation for URL verification events' do
@@ -57,6 +81,12 @@ describe 'SlackEventsAPIHandler' do
       slack_events_api.send(:dispatch)
     end
 
+    it 'should call app_mention for app_mention events' do
+      slack_events_api = SlackEventsAPIHandler.new(app_mention_event)
+      expect(slack_events_api).to receive(:app_mention)
+      slack_events_api.send(:dispatch)
+    end
+    
   end
 
   describe '#url_verification' do

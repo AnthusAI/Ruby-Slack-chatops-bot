@@ -6,6 +6,8 @@ require 'awesome_print'
 require_relative 'gpt'
 
 class SlackEventsAPIHandler
+  attr_reader :app_id, :user_id
+
   def initialize(event)
     @logger = Logger.new(STDOUT)
     @event = JSON.parse(event)
@@ -19,6 +21,11 @@ class SlackEventsAPIHandler
       name: param_name, with_decryption: true
     ).parameter.value
 
+    param_name = "slack_user_id-#{environment}"
+    @user_id = ssm_client.get_parameter(
+      name: param_name, with_decryption: true
+    ).parameter.value
+    
     param_name = "slack_app_access_token-#{environment}"
     @access_token = ssm_client.get_parameter(
       name: param_name, with_decryption: true
@@ -44,6 +51,8 @@ class SlackEventsAPIHandler
     case @event['event']['type']
     when 'message'
       message
+    when 'app_mention'
+      app_mention
     else
       # Handle other event types if necessary
     end
@@ -53,21 +62,25 @@ class SlackEventsAPIHandler
     message_text = @event['event']['text']
     @logger.info("Slack message event with text: \"#{message_text}\"")
   
-    unless is_event_from_me?
+    if event_mentions_me? and not is_event_from_me?
       conversation_history = get_conversation_history(
         @event['event']['channel'])
-      conversation_history_string =
-        if conversation_history.nil?
-          "Error getting conversation history"
-        else
-          conversation_history.slice(0,3).reverse.map do |message|
-            "#{message['user_profile']['real_name']} said: #{message['message'][0..140]}"
-          end.join("\n\n")
-        end
-      
+    
+      gpt = GPT.new(
+        slack_events_api_handler: self
+      )
+      chat_messages_list = gpt.build_chat_messages_list(conversation_history)
+      response = gpt.get_response(chat_messages_list)
+    
       send_message(
-        @event['event']['channel'], conversation_history_string)
+        @event['event']['channel'], response)
     end
+    
+  end
+
+  def app_mention
+    message_text = @event['event']['text']
+    @logger.info("Slack message event with text: \"#{message_text}\"")
   end
   
   def send_message(channel, text)
@@ -92,8 +105,16 @@ class SlackEventsAPIHandler
     end
   end
 
+  def event_mentions_me?
+    event_mentions_me = @event['event']['text'].include?(@user_id)
+    @logger.info("does \"#{@event['event']['text']}\" mention the ID of this user, \"#{@user_id}\"?  #{event_mentions_me} ? : 'yes' : 'no'")
+    event_mentions_me
+  end
+
   def is_event_from_me?
-    @event['event']['app_id'] == @app_id
+    is_event_from_me = @event['event']['app_id'] == @app_id
+    @logger.info("is \"#{@event['event']['app_id']}\" the ID of this app, \"#{@app_id}\"?  #{is_event_from_me} ? : 'yes' : 'no'")
+    is_event_from_me
   end
 
   def get_conversation_history(channel_id)
