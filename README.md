@@ -6,6 +6,17 @@ This Ruby code packaged as a serverless AWS SAM app serves as a bridge between S
 
 The application is based on AWS Lambda and is triggered by events from the Slack Events API. This means that whenever a user posts a message in the linked Slack channel, an event is sent to our Lambda function, which processes the event and sends a response back to the Slack channel. The core processing logic is encapsulated in a Ruby class called `SlackEventsAPIHandler`.
 
+```mermaid
+graph LR
+    A[Slack User] -- Sends Message --> B((Slack API))
+    B -- Triggers Event --> C{AWS Lambda}
+    C -- Executes --> D[SlackEventsAPIHandler]
+    D -- Sends Request --> E{OpenAI API}
+    E -- Returns Response --> D
+    D -- Sends Response --> B
+    B -- Posts Response --> A
+```
+
 The `SlackEventsAPIHandler` class is responsible for parsing incoming Slack events, dispatching them to the correct handler based on their type, and returning the appropriate response. Currently, it supports two types of events: `url_verification` and `message`.
 
 The `url_verification` event is used by Slack to confirm that our endpoint is operational and owned by us. When this event type is received, the class simply echoes back the 'challenge' string provided in the event.
