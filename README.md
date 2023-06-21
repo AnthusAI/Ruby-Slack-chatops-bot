@@ -23,7 +23,7 @@ graph TD
     F -- 5: triggers event --> G[AWS Lambda\non SQS event]
     G -- 6: executes --> D[SlackEventsAPIHandler]
     D -- 7: sends slack message history --> E[OpenAIChatBot]
-    G -- 8: gets channel message history --> B
+    D -- 8: gets channel message history --> B
     E -- 9: sends chat request with channel history --> H((OpenAI API))
     H -- 10: sends chat response --> E
     E -- 11: posts response to Slack channel --> B
