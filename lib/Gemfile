@@ -1,5 +1,6 @@
 source "https://rubygems.org"
 
-gem "httparty"
+gem "ruby-openai"
+gem "awesome_print"
 
 ruby '~> 2.7.0'

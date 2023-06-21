@@ -2,9 +2,9 @@ require 'json'
 require_relative 'slack_events_api'
 
 def lambda_handler(event:, context:)
-  # Instantiate SlackEventsAPI object and call dispatch on it.
+  # Instantiate SlackEventsAPIHandler object and call dispatch on it.
   slack_event = event['body']
-  slack_events_api = SlackEventsAPI.new(slack_event)
+  slack_events_api = SlackEventsAPIHandler.new(slack_event)
 
   {
     statusCode: 200,

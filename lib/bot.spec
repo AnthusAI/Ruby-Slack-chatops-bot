@@ -10,10 +10,10 @@ describe 'Bot' do
     }.to_json
   end
 
-  it 'creates a SlackEventsAPI object and calls dispatch on it' do
-    slack_event = instance_double('SlackEventsAPI')
+  it 'creates a SlackEventsAPIHandler object and calls dispatch on it' do
+    slack_event = instance_double('SlackEventsAPIHandler')
 
-    allow(SlackEventsAPI).to receive(:new).with(event_body).and_return(slack_event)
+    allow(SlackEventsAPIHandler).to receive(:new).with(event_body).and_return(slack_event)
     expect(slack_event).to receive(:dispatch)
 
     lambda_handler(event: { 'body' => event_body }, context: {})

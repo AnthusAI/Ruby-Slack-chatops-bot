@@ -2,8 +2,10 @@ require 'logger'
 require 'net/http'
 require 'uri'
 require 'aws-sdk-ssm'
+require 'awesome_print'
+require_relative 'gpt'
 
-class SlackEventsAPI
+class SlackEventsAPIHandler
   def initialize(event)
     @logger = Logger.new(STDOUT)
     @event = JSON.parse(event)
@@ -113,7 +115,7 @@ class SlackEventsAPI
           'message' => message['text']
         }
       end.tap do |response|
-        @logger.info("Conversation history: #{response}")
+        @logger.info("Conversation history:\n#{response.to_json}")
       end
     else
       @logger.error("Error getting conversation history: #{response_body['error']}")

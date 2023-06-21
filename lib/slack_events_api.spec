@@ -1,6 +1,7 @@
+require_relative 'spec_helper'
 require_relative 'slack_events_api'
 
-describe 'SlackEventsAPI' do
+describe 'SlackEventsAPIHandler' do
   before do
     allow_any_instance_of(Aws::SSM::Client).to receive(:get_parameter) do |_, args|
       if args[:name].include?('app_id')
@@ -45,13 +46,13 @@ describe 'SlackEventsAPI' do
   describe '#dispatch' do
 
     it 'should call url_confirmation for URL verification events' do
-      slack_events_api = SlackEventsAPI.new(url_verification_event)
+      slack_events_api = SlackEventsAPIHandler.new(url_verification_event)
       expect(slack_events_api).to receive(:url_confirmation)
       slack_events_api.send(:dispatch)
     end
 
     it 'should call message for message events' do
-      slack_events_api = SlackEventsAPI.new(message_event)
+      slack_events_api = SlackEventsAPIHandler.new(message_event)
       expect(slack_events_api).to receive(:message)
       slack_events_api.send(:dispatch)
     end
@@ -61,7 +62,7 @@ describe 'SlackEventsAPI' do
   describe '#url_verification' do
 
     it 'should respond to URL verification events with the challenge' do
-      slack_events_api = SlackEventsAPI.new(url_verification_event)
+      slack_events_api = SlackEventsAPIHandler.new(url_verification_event)
       expect(slack_events_api.dispatch).to eq('3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P')
     end
 
@@ -70,7 +71,7 @@ describe 'SlackEventsAPI' do
   describe '#message' do
 
     it 'should hangle message events' do
-      slack_events_api = SlackEventsAPI.new(message_event)
+      slack_events_api = SlackEventsAPIHandler.new(message_event)
       slack_events_api.dispatch
     end
 
@@ -82,7 +83,7 @@ describe 'SlackEventsAPI' do
       event = JSON.parse(message_event)
       event['event']['app_id'] = 'A05D7UH7GHH'
 
-      slack_events_api = SlackEventsAPI.new(event.to_json)
+      slack_events_api = SlackEventsAPIHandler.new(event.to_json)
 
       expect(slack_events_api.send(:is_event_from_me?)).to eq(true)
     end
@@ -91,7 +92,7 @@ describe 'SlackEventsAPI' do
       event = JSON.parse(message_event)
       event['event']['app_id'] = 'SomeOtherAppID'
 
-      slack_events_api = SlackEventsAPI.new(event.to_json)
+      slack_events_api = SlackEventsAPIHandler.new(event.to_json)
 
       expect(slack_events_api.send(:is_event_from_me?)).to eq(false)
     end
@@ -123,7 +124,7 @@ describe 'SlackEventsAPI' do
   
     it 'fetches conversation history from a channel' do
       event = JSON.parse(message_event)
-      history = SlackEventsAPI.new(event.to_json).
+      history = SlackEventsAPIHandler.new(event.to_json).
         send(:get_conversation_history, channel_id)
       expect(history.length).to eq(3)
       expect(history[0]['user_id']).to eq(bot_id)
@@ -137,7 +138,7 @@ describe 'SlackEventsAPI' do
   
   describe '#get_user_profile' do
     let(:event) { JSON.parse(message_event) }
-    let(:bot) { SlackEventsAPI.new(event.to_json) }
+    let(:bot) { SlackEventsAPIHandler.new(event.to_json) }
     let(:user_id) { 'U38CHGBLL' }
     let(:http) { instance_double(Net::HTTP) }
     let(:response) { instance_double(Net::HTTPResponse) }
