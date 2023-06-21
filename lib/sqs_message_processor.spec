@@ -26,6 +26,6 @@ describe 'SlackEventsAPIHandler' do
       and_return(slack_event)
     expect(slack_event).to receive(:dispatch)
 
-    lambda_handler(event: lambda_event, context: {})
+    sqs_message_processor_lambda_handler(event: lambda_event, context: {})
   end
 end

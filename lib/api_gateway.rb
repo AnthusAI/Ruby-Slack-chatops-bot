@@ -4,7 +4,7 @@ require 'awesome_print'
 require 'aws-sdk-sqs'
 require_relative 'slack_events_api'
 
-def lambda_handler(event:, context:)
+def api_gateway_lambda_handler(event:, context:)
   logger = Logger.new(STDOUT)
   logger.info("Received event from Lambda: #{event.ai}")
 

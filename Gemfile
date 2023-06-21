@@ -10,6 +10,7 @@ group :test do
   gem "guard"
   gem "guard-rake"
   gem "rspec"
+  gem 'simplecov', require: false
   gem "pry"
   gem "byebug"
 end
