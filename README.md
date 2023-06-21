@@ -38,4 +38,4 @@ Contributions to this project are welcome! Feel free to fork the repository and 
 
 ## Credits
 
-Most of the code and the README were written by ChatGPT, an AI model developed by OpenAI. You can view the conversation that resulted in this README [here](https://chat.openai.com/share/b05e8290-7fc1-410b-a7eb-b23d83a8e605).
+Most of the code and the README were written by ChatGPT, an AI model developed by OpenAI. You can view the conversation that resulted in this README [here](https://chat.openai.com/share/c862ad4f-d2e7-4a59-a694-3e6076d5433b).
