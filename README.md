@@ -16,16 +16,18 @@ The application is based on AWS Lambda and is triggered by events from the Slack
 
 ```mermaid
 graph TD
-    A[Slack User] -- sends message --> B((Slack API))
-    B -- triggers message event --> C{AWS Lambda\nin API Gateway}
-    C -- posts message --> F((SQS Queue))
-    C -- responds successfully\nimmediately --> B
-    F -- triggers event --> G{AWS Lambda\non SQS event}
-    G -- executes --> D[SlackEventsAPIHandler]
-    D -- sends message event --> E{OpenAI API}
-    E -- returns response --> D
-    D -- sends chat message --> B
-    B -- posts message --> A
+    A(Slack User) -- 1: sends message --> B((Slack API))
+    B -- 2: triggers message event --> C[AWS Lambda\nin API Gateway]
+    C -- 3: posts message --> F((SQS Queue))
+    C -- 4: responds successfully\nimmediately --> B
+    F -- 5: triggers event --> G[AWS Lambda\non SQS event]
+    G -- 6: executes --> D[SlackEventsAPIHandler]
+    D -- 7: sends slack message history --> E[OpenAIChatBot]
+    G -- 8: gets channel message history --> B
+    E -- 9: sends chat request with channel history --> H((OpenAI API))
+    H -- 10: sends chat response --> E
+    E -- 11: posts response to Slack channel --> B
+    B -- 12: posts message --> A
 ```
 
 The `SlackEventsAPIHandler` class is responsible for parsing incoming Slack events, dispatching them to the correct handler based on their type, and returning the appropriate response. Currently, it supports two types of events: `url_verification` and `message`.
