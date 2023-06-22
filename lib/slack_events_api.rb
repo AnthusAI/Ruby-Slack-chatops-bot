@@ -97,6 +97,11 @@ class SlackEventsAPIHandler
         slack_events_api_handler: self
       )
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
+
+      update_message(
+        @slack_event['event']['channel'], ':robot_face:',
+          response_slack_message['ts'])
+
       response = gpt.get_response(chat_messages_list)
     
       update_message(
@@ -193,8 +198,6 @@ class SlackEventsAPIHandler
           'user_profile' => get_user_profile(message['user']),
           'message' => message['text']
         }
-      end.tap do |response|
-        @logger.info("Conversation history:\n#{response.to_json}")
       end
     else
       @logger.error("Error getting conversation history: #{response_body['error']}")
