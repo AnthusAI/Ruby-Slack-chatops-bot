@@ -66,12 +66,29 @@ class SlackEventsAPIHandler
     end
   end
 
+  def message_text
+    @message_text ||=
+      case @slack_event['event']['subtype']
+      when 'message_deleted'
+        @logger.info("Ignoring message_deleted event.")
+        return
+      when 'message_changed'
+        @logger.info("Handling message_changed event.")
+        @slack_event['event']['message']['text']
+      else
+        @slack_event['event']['text']
+      end
+  end
+
   def message
-    message_text = @slack_event['event']['text']
     @logger.info("Slack message event with text: \"#{message_text}\"")
   
     if event_mentions_me? and not is_event_from_me?
       @logger.info("Responding to message event.")
+
+      response_slack_message = send_message(
+        @slack_event['event']['channel'], '...')
+      @logger.info("Response message: #{response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
@@ -82,8 +99,9 @@ class SlackEventsAPIHandler
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
       response = gpt.get_response(chat_messages_list)
     
-      send_message(
-        @slack_event['event']['channel'], response)
+      update_message(
+        @slack_event['event']['channel'], response,
+          response_slack_message['ts'])
     else
       @logger.info("Not responding to message event.")
     end
@@ -111,15 +129,40 @@ class SlackEventsAPIHandler
       use_ssl: uri.scheme == "https",
     }
   
+    Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
+      http.request(request)
+    end.tap do |response|
+      @logger.info("Sent message to Slack: #{response.body.ai}")
+      return JSON.parse(response.body)
+    end
+  end
+
+  def update_message(channel, text, ts)
+    @logger.info("Updating existing message from timestamp #{ts} in Slack: #{text}")
+    uri = URI.parse("https://slack.com/api/chat.update")
+  
+    request = Net::HTTP::Post.new(uri)
+    request.content_type = "application/x-www-form-urlencoded"
+    request["Authorization"] = "Bearer #{@access_token}"
+    request.set_form_data(
+      "channel" => channel,
+      "text" => text,
+      "ts" => ts, # Timestamp of the message to update
+    )
+  
+    req_options = {
+      use_ssl: uri.scheme == "https",
+    }
+  
     response = Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
       http.request(request)
     end.tap do |response|
-      @logger.info("Sent message to Slack: #{response.body}")
+      @logger.info("Updated message in Slack: #{response.body.ai}")
+      return JSON.parse(response.body)
     end
   end
 
   def event_mentions_me?
-    message_text = @slack_event['event']['text']
     message_text_mentions_me = message_text.include?(@user_id)
     @logger.info("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
     message_text_mentions_me
