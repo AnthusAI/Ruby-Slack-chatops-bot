@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Serverless::Function 
     Properties:
       CodeUri: lib/
-      Handler: sqs_message_processor.lambda_handler
+      Handler: sqs_message_processor.sqs_message_processor_lambda_handler
       Runtime: ruby2.7
       Architectures:
         - x86_64
@@ -47,7 +47,7 @@ Resources:
     Type: AWS::Serverless::Function 
     Properties:
       CodeUri: lib/
-      Handler: api_gateway.lambda_handler
+      Handler: api_gateway.api_gateway_lambda_handler
       Runtime: ruby2.7
       Architectures:
         - x86_64

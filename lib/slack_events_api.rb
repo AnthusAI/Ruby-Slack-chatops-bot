@@ -11,7 +11,7 @@ class SlackEventsAPIHandler
   def initialize(slack_event)
     @logger = Logger.new(STDOUT)
     @slack_event = JSON.parse(slack_event)
-    @logger.info("Slack event: #{@slack_event}")
+    @logger.info("Slack event: #{@slack_event.ai}")
     
     ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
     environment = ENV['ENV'] || 'development'
@@ -54,7 +54,7 @@ class SlackEventsAPIHandler
   end
 
   def handle_event_callback
-    @logger.debug("Handling event callback: #{@slack_event}")
+    @logger.debug("Handling event callback: #{@slack_event.ai}")
 
     case @slack_event['event']['type']
     when 'message'
@@ -121,7 +121,7 @@ class SlackEventsAPIHandler
   def event_mentions_me?
     message_text = @slack_event['event']['text']
     message_text_mentions_me = message_text.include?(@user_id)
-    @logger.info("does \"#{@slack_event['text']}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
+    @logger.info("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
     message_text_mentions_me
   end
 
