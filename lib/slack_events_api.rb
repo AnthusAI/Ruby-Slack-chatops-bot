@@ -202,7 +202,7 @@ class SlackEventsAPIHandler
   end
 
   def get_conversation_history(channel_id)
-    uri = URI("https://slack.com/api/conversations.history?channel=#{channel_id}")
+    uri = URI("https://slack.com/api/conversations.history?channel=#{channel_id}&limit=200")
     request = Net::HTTP::Get.new(uri)
     request["Authorization"] = "Bearer #{@access_token}"
   
@@ -215,7 +215,8 @@ class SlackEventsAPIHandler
       messages = response_body['messages']
       @logger.info("Conversation history: #{messages.ai}")
       messages.reject{|message|
-        message['ts'].eql? @response_slack_message['ts'] }.
+        @response_slack_message &&
+          message['ts'].eql?(@response_slack_message['ts']) }.
         map do |message|
         {
           'user_id' => message['user'],

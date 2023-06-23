@@ -17,15 +17,13 @@ class GPT
     ).parameter.value
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3
+    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt4
+    @logger.info "OpenAI model: #{model_name}"
   end
   
   # Convert the conversation history list of hashes that came from the Slack API
   # into a list of messages that can be passed to the OpenAI API.
   def build_chat_messages_list(conversation_history)
-    # Assume at first that ALL messages in the conversation history will fit
-    # into the messages list.
-    number_of_messages_to_include = conversation_history.length
     until (
       estimate_tokens(
         conversation_history.map{ |message| message['message'] }.join(' ')
@@ -33,7 +31,11 @@ class GPT
     )
       # If the conversation history is too long, remove the oldest message
       # and try again.
-      conversation_history.shift
+      @logger.info "Trimming conversation history."
+      @logger.debug "First three items in conversation history: #{conversation_history[0..2].ai}"
+      @logger.debug "Last three items in conversation history: #{conversation_history[-3..-1].ai}"
+      conversation_history =
+        conversation_history.slice(0, conversation_history.length - 1)
     end
 
     # This array represents the conversation history that will be passed to
@@ -98,7 +100,9 @@ class GPT
       return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
     end
 
-    output.to_i
+    output.to_i.tap do |output|
+      @logger.info "Estimated tokens: #{output}"
+    end
   end
 
   def get_response(conversation_history)
@@ -131,15 +135,23 @@ class GPT
       loop do
         # Loop until the response is not a context-length error.
         response = api_response(conversation_history)
-        break(response) unless
-          response['error'] &&
-          response['error']['code'] == 'context_length_exceeded'
-        
-        @logger.info 'Context length exceeded. Retrying...'
-        sleep 1
-      
+        break(response) unless response['error']
+        @logger.info 'Error from OpenAI API.'
+
+        case response['error']['code']
+
         # If the context length is exceeded, try again with a shorter context.
-        conversation_history.shift
+        when 'context_length_exceeded'
+          @logger.info 'Context length exceeded. Retrying...'
+          sleep 1
+          conversation_history.shift  
+
+        # For generale errors of "type" => "server_error" or anything else,
+        # try again.
+        else
+          sleep 1
+        end
+
       end
     
     response.dig("choices", 0, "message", "content").tap do |response|
