@@ -35,8 +35,7 @@ describe 'SlackEventsAPIHandler' do
         'ts' => '1687226301.070299',
         'team' => 'T38A9EMB4',
         'channel' => 'D05DXTTARMW',
-        'event_ts' => '1687226301.070299',
-        'channel_type' => 'im'
+        'event_ts' => '1687226301.070299'
       },
       'type' => 'event_callback',
       'event_id' => 'Ev05D8RGPFQA',
@@ -64,6 +63,29 @@ describe 'SlackEventsAPIHandler' do
       "authed_users" => [
           "U0LAN0Z89"
       ]
+    }.to_json
+  end
+
+  let(:direct_message_event) do
+    {
+        "token" => "one-long-verification-token",
+        "team_id" => "T061EG9R6",
+        "api_app_id" => "A0PNCHHK2",
+        "event" => {
+            "type" => "message",
+            "channel" => "D024BE91L",
+            "user" => "U2147483697",
+            "text" => "Hello hello can you hear me?",
+            "ts" => "1355517523.000005",
+            "event_ts" => "1355517523.000005",
+            "channel_type" => "im"
+        },
+        "type" => "event_callback",
+        "authed_teams" => [
+            "T061EG9R6"
+        ],
+        "event_id" => "Ev0PV52K21",
+        "event_time" => 1355517523
     }.to_json
   end
 
@@ -107,7 +129,7 @@ describe 'SlackEventsAPIHandler' do
 
   end
 
-  describe '#is_event_from_me?' do
+  describe '#event_is_from_me?' do
 
     it 'returns true when the event is from the app' do
       massaged_event = JSON.parse(message_event)
@@ -115,7 +137,7 @@ describe 'SlackEventsAPIHandler' do
 
       slack_events_api = SlackEventsAPIHandler.new(massaged_event.to_json)
 
-      expect(slack_events_api.send(:is_event_from_me?)).to eq(true)
+      expect(slack_events_api.send(:event_is_from_me?)).to eq(true)
     end
 
     it 'returns false when the event is not from the app' do
@@ -124,8 +146,25 @@ describe 'SlackEventsAPIHandler' do
 
       slack_events_api = SlackEventsAPIHandler.new(massaged_event.to_json)
 
-      expect(slack_events_api.send(:is_event_from_me?)).to eq(false)
+      expect(slack_events_api.send(:event_is_from_me?)).to eq(false)
     end
+
+  end
+
+  describe '#event_is_direct_message?' do
+
+    it 'returns true when the event is a direct message' do
+      slack_events_api = SlackEventsAPIHandler.new(direct_message_event)
+
+      expect(slack_events_api.send(:event_is_direct_message?)).to eq(true)
+    end
+
+    it 'returns false when the event is not a direct message' do
+      slack_events_api = SlackEventsAPIHandler.new(message_event)
+
+      expect(slack_events_api.send(:event_is_direct_message?)).to eq(false)
+    end
+
   end
 
   describe '#get_conversation_history' do

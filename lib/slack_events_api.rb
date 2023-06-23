@@ -3,6 +3,7 @@ require 'net/http'
 require 'uri'
 require 'aws-sdk-ssm'
 require 'awesome_print'
+require 'active_support'
 require_relative 'openai_chat_bot'
 
 class SlackEventsAPIHandler
@@ -83,12 +84,15 @@ class SlackEventsAPIHandler
   def message
     @logger.info("Slack message event with text: \"#{message_text}\"")
   
-    if event_mentions_me? and not is_event_from_me?
+    if (( event_mentions_me? or
+          event_is_direct_message? ) and
+            not event_is_from_me?)
+
       @logger.info("Responding to message event.")
 
-      response_slack_message = send_message(
+      @response_slack_message = send_message(
         @slack_event['event']['channel'], '...')
-      @logger.info("Response message: #{response_slack_message.ai}")
+      @logger.info("Response message: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
@@ -100,13 +104,13 @@ class SlackEventsAPIHandler
 
       update_message(
         @slack_event['event']['channel'], ':robot_face:',
-          response_slack_message['ts'])
+          @response_slack_message['ts'])
 
       response = gpt.get_response(chat_messages_list)
     
       update_message(
         @slack_event['event']['channel'], response,
-          response_slack_message['ts'])
+          @response_slack_message['ts'])
     else
       @logger.info("Not responding to message event.")
     end
@@ -173,11 +177,28 @@ class SlackEventsAPIHandler
     message_text_mentions_me
   end
 
-  def is_event_from_me?
-    app_id = @slack_event['event']['app_id']
-    is_event_from_me = app_id == @app_id
-    @logger.info("is \"#{app_id}\" the ID of this app, \"#{@app_id}\"?  #{is_event_from_me ? 'Yes!' : 'No.'}")
-    is_event_from_me
+  def event_app_id
+    unless (id = @slack_event['event']['app_id']).blank?
+      return id
+    else
+      unless (@slack_event['event']['message'].blank? ||
+        id = @slack_event['event']['message']['app_id']).blank?
+        return id
+      end
+    end
+  end
+
+  def event_is_from_me?
+    event_is_from_me = event_app_id == @app_id
+    @logger.info("is \"#{event_app_id}\" the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
+    event_is_from_me
+  end
+
+  def event_is_direct_message?
+    channel_type = @slack_event['event']['channel_type']
+    event_is_direct_message = channel_type == 'im'
+    @logger.info("is \"#{channel_type}\" the type of this channel, \"im\"?  #{event_is_direct_message ? 'Yes!' : 'No.'}")
+    event_is_direct_message
   end
 
   def get_conversation_history(channel_id)
@@ -192,7 +213,10 @@ class SlackEventsAPIHandler
   
     if response_body['ok']
       messages = response_body['messages']
-      messages.map do |message|
+      @logger.info("Conversation history: #{messages.ai}")
+      messages.reject{|message|
+        message['ts'].eql? @response_slack_message['ts'] }.
+        map do |message|
         {
           'user_id' => message['user'],
           'user_profile' => get_user_profile(message['user']),
