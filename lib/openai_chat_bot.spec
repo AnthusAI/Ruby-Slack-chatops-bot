@@ -89,8 +89,14 @@ describe 'OpenAI' do
       JSON
     )
   }
+  let(:ssm_client) { instance_double(Aws::SSM::Client) }
 
   before do
+    allow(Aws::SSM::Client).to receive(:new).and_return(ssm_client)
+    allow(ssm_client).to receive(:get_parameter).and_return(instance_double('Aws::SSM::Types::GetParameterResult',
+      parameter: instance_double(
+        'Aws::SSM::Types::Parameter', value: 'test_token'
+      )))
     allow(slack_events_api_handler).
       to receive(:user_id).and_return('U05D815D3PD')
   end

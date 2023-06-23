@@ -4,10 +4,16 @@ require_relative 'api_gateway'
 
 describe 'lambda_handler' do
   let(:logger) { Logger.new(STDOUT) }
+  let(:ssm_client) { instance_double(Aws::SSM::Client) }
   let(:sqs_client) { instance_double(Aws::SQS::Client) }
 
   before do
     allow(Logger).to receive(:new).and_return(logger)
+    allow(Aws::SSM::Client).to receive(:new).and_return(ssm_client)
+        allow(ssm_client).to receive(:get_parameter).and_return(instance_double('Aws::SSM::Types::GetParameterResult',
+          parameter: instance_double(
+            'Aws::SSM::Types::Parameter', value: 'test_token'
+          )))
     allow(Aws::SQS::Client).to receive(:new).and_return(sqs_client)
   end
 

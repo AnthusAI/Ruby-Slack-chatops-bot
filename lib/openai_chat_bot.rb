@@ -4,6 +4,19 @@ require 'openai'
 
 class GPT
 
+  @@open_ai_models = {
+    gpt3: {
+      name: 'gpt-3.5-turbo-16k-0613',
+      max_tokens: 16384,
+      slack_messages_to_retrieve: 200
+    },
+    gpt4: {
+      name: 'gpt-4-0613',
+      max_tokens: 8192,
+      slack_messages_to_retrieve: 100
+    }
+  }
+
   def initialize(slack_events_api_handler:)
     @logger = Logger.new(STDOUT)
     @slack_events_api_handler = slack_events_api_handler
@@ -24,6 +37,12 @@ class GPT
   # Convert the conversation history list of hashes that came from the Slack API
   # into a list of messages that can be passed to the OpenAI API.
   def build_chat_messages_list(conversation_history)
+    # First, trim it to the maximum number of messages that we have set up
+    # for the current model.  We use this as a rough estimate without doing
+    # the slower work of counting tokens.
+    conversation_history =
+      conversation_history.slice(0, slack_messages_to_retrieve)
+
     until (
       estimate_tokens(
         conversation_history.map{ |message| message['message'] }.join(' ')
@@ -160,25 +179,15 @@ class GPT
   end
 
   def model_name
-    case @open_ai_model
-    when :gpt3
-      'gpt-3.5-turbo-16k-0613'
-    when :gpt4
-      'gpt-4-0613'
-    else
-      'gpt-4-0613'
-    end
+    @@open_ai_models[@open_ai_model][:name]
   end
 
   def model_max_tokens
-    case @open_ai_model
-    when :gpt4
-      8192
-    when :gpt3
-      16384
-    else
-      16384
-    end
+    @@open_ai_models[@open_ai_model][:max_tokens]
+  end
+
+  def slack_messages_to_retrieve
+    @@open_ai_models[@open_ai_model][:slack_messages_to_retrieve]
   end
 
 end
