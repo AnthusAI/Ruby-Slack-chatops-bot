@@ -22,6 +22,10 @@ s3_prefix = "ruby-slack-openai-chat-bot-development"
 region = "us-east-1"
 image_repositories = []
 
+[production.deploy.parameters]
+stack_name = "ruby-slack-openai-chat-bot-production"
+s3_prefix = "ruby-slack-openai-chat-bot-production"
+
 [default.package.parameters]
 resolve_s3 = true
 
