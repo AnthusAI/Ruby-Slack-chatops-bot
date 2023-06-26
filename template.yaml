@@ -14,7 +14,7 @@ Resources:
   SlackEventsAPIHandlerHandlerFunction:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: lib/
+      CodeUri: ./
       Handler: sqs_message_processor.sqs_message_processor_lambda_handler
       Runtime: ruby2.7
       Architectures:
@@ -46,7 +46,7 @@ Resources:
   APIGatewayHandlerFunction:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: lib/
+      CodeUri: ./
       Handler: api_gateway.api_gateway_lambda_handler
       Runtime: ruby2.7
       Architectures:

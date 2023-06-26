@@ -1,7 +1,7 @@
 require 'json'
 require 'logger'
 require 'awesome_print'
-require_relative 'slack_events_api'
+require_relative 'lib/slack_events_api'
 
 def sqs_message_processor_lambda_handler(event:, context:)
   logger = Logger.new(STDOUT)

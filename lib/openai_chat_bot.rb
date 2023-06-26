@@ -30,7 +30,7 @@ class GPT
     ).parameter.value
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt4
+    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3
     @logger.info "OpenAI model: #{model_name}"
   end
   
@@ -46,7 +46,9 @@ class GPT
     until (
       estimate_tokens(
         conversation_history.map{ |message| message['message'] }.join(' ')
-      ) < model_max_tokens
+      ) < model_max_tokens / 4 # 4k of history for a 16k model.
+      # It's too expensive to send the entire conversation history to the
+      # OpenAI API, so we trim it down until it's a reasonable size.
     )
       # If the conversation history is too long, remove the oldest message
       # and try again.
@@ -63,7 +65,7 @@ class GPT
       # Add a system prompt to the beginning of the conversation history.
       {
         role: "system",
-        content: File.read(File.join(__dir__,'bot', 'system_prompt.txt'))
+        content: File.read(File.join(__dir__, '..', 'bot', 'system_prompt.txt'))
       }
     ] +
       conversation_history.

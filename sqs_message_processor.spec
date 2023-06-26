@@ -1,5 +1,5 @@
 require_relative 'sqs_message_processor'
-require_relative 'slack_events_api'
+require_relative 'lib/slack_events_api'
 
 describe 'SlackEventsAPIHandler' do
   let(:event_body) do

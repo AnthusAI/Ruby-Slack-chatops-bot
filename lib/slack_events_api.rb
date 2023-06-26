@@ -91,19 +91,19 @@ class SlackEventsAPIHandler
       @logger.info("Responding to message event.")
 
       @response_slack_message = send_message(
-        @slack_event['event']['channel'], '...')
+        @slack_event['event']['channel'], ':gear: preparing...')
       @logger.info("Response message: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
-    
+
       gpt = GPT.new(
         slack_events_api_handler: self
       )
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
 
       update_message(
-        @slack_event['event']['channel'], ':robot_face:',
+        @slack_event['event']['channel'], ":robot_face: GPT-4 is thinking...",
           @response_slack_message['ts'])
 
       response = gpt.get_response(chat_messages_list)

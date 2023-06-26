@@ -2,7 +2,7 @@ require 'json'
 require 'logger'
 require 'awesome_print'
 require 'aws-sdk-sqs'
-require_relative 'slack_events_api'
+require_relative 'lib/slack_events_api'
 
 def api_gateway_lambda_handler(event:, context:)
   logger = Logger.new(STDOUT)
