@@ -113,7 +113,8 @@ describe 'OpenAI' do
     end
 
     it 'includes the system prompt as the first message' do
-      expect(@messages_list[0][:content]).to eq(File.read(File.join(__dir__, 'bot', 'system_prompt.txt')))
+      expect(@messages_list[0][:content]).to eq(
+        File.read(File.join(__dir__, '..', 'bot', 'system_prompt.txt')))
     end
 
     it 'lists messages in chronological order' do

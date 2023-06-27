@@ -5,6 +5,12 @@ Description: >
 
   Sample SAM Template for ruby-slack-openai-chat-bot
 
+Parameters:
+  ENVIRONMENT:
+    Description: 'development, test, staging, production'
+    Type: 'String'
+    Default: 'development'
+
 Globals:
   Function:
     Timeout: 300
@@ -17,6 +23,9 @@ Resources:
       CodeUri: ./
       Handler: sqs_message_processor.sqs_message_processor_lambda_handler
       Runtime: ruby2.7
+      Environment: 
+        Variables:
+          ENVIRONMENT: !Ref ENVIRONMENT
       Architectures:
         - x86_64
       Events:
@@ -49,6 +58,9 @@ Resources:
       CodeUri: ./
       Handler: api_gateway.api_gateway_lambda_handler
       Runtime: ruby2.7
+      Environment: 
+        Variables:
+          ENVIRONMENT: !Ref ENVIRONMENT
       Architectures:
         - x86_64
       Environment:

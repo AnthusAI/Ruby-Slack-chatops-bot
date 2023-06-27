@@ -15,15 +15,10 @@ class SlackEventsAPIHandler
     @logger.info("Slack event: #{@slack_event.ai}")
     
     ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
-    environment = ENV['ENV'] || 'development'
+    environment = ENV['ENVIRONMENT'] || 'development'
 
     param_name = "slack_app_id-#{environment}"
     @app_id = ssm_client.get_parameter(
-      name: param_name, with_decryption: true
-    ).parameter.value
-
-    param_name = "slack_user_id-#{environment}"
-    @user_id = ssm_client.get_parameter(
       name: param_name, with_decryption: true
     ).parameter.value
     
@@ -59,7 +54,7 @@ class SlackEventsAPIHandler
 
     case @slack_event['event']['type']
     when 'message'
-      message
+      message unless message_subtype.eql? 'message_changed'
     when 'app_mention'
       app_mention
     else
@@ -67,9 +62,13 @@ class SlackEventsAPIHandler
     end
   end
 
+  def message_subtype
+    @slack_event['event']['subtype']
+  end
+
   def message_text
     @message_text ||=
-      case @slack_event['event']['subtype']
+      case message_subtype
       when 'message_deleted'
         @logger.info("Ignoring message_deleted event.")
         return
@@ -91,7 +90,7 @@ class SlackEventsAPIHandler
       @logger.info("Responding to message event.")
 
       @response_slack_message = send_message(
-        @slack_event['event']['channel'], ':gear: preparing...')
+        @slack_event['event']['channel'], ':gear: preparing context for AI model...')
       @logger.info("Response message: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
@@ -103,7 +102,7 @@ class SlackEventsAPIHandler
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
 
       update_message(
-        @slack_event['event']['channel'], ":robot_face: GPT-4 is thinking...",
+        @slack_event['event']['channel'], ":robot_face: AI model is thinking...",
           @response_slack_message['ts'])
 
       response = gpt.get_response(chat_messages_list)
@@ -172,7 +171,7 @@ class SlackEventsAPIHandler
   end
 
   def event_mentions_me?
-    message_text_mentions_me = message_text.include?(@user_id)
+    message_text_mentions_me = message_text.include?(user_id)
     @logger.info("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
     message_text_mentions_me
   end
@@ -231,6 +230,7 @@ class SlackEventsAPIHandler
   end
 
   def get_user_profile(user_id)
+    @logger.info("Getting user profile for user ID: #{user_id}")
     @profile_cache ||= {}
     if @profile_cache[user_id] && Time.now - @profile_cache[user_id][:timestamp] < 3600
       # Return the cached result if it's less than an hour old
@@ -248,16 +248,54 @@ class SlackEventsAPIHandler
     
     if response_body['ok']
       profile = response_body['profile']
-      @logger.info("User profile: #{profile}")
+      @logger.info("User profile: #{profile.ai}")
       
       # Cache the result with a timestamp
       @profile_cache[user_id] = { data: profile, timestamp: Time.now }
+
+      # If this is from the current app_id then we can get the user_id from the
+      # event itself, so we can cache the result by user_id.
+      @user_id = user_id if event_app_id == @app_id
       
       profile
     else
       @logger.error("Error getting user profile: #{response_body['error']}")
       nil
     end
+  end
+
+  # Return the stored user_id from a DynamoDB table, or get a list of users
+  # in the current Slack channel and check each one to see if the app_id
+  # matches the current app_id.  If so, store the user_id in the DynamoDB
+  # table and return it.
+  def user_id
+    @logger.info("Getting my current user ID...")
+
+    uri = URI("https://slack.com/api/conversations.members?channel=#{@slack_event['event']['channel']}")
+    request = Net::HTTP::Get.new(uri)
+    request["Authorization"] = "Bearer #{@access_token}"
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    response = http.request(request)
+    response_body = JSON.parse(response.body)
+
+    if response_body['ok']
+      user_ids = response_body['members']
+      @logger.info("Users in channel: #{user_ids.ai}")
+      user_ids.each do |user_id|
+        profile = get_user_profile(user_id)
+        if profile['api_app_id'] == @app_id
+          @logger.info("Found my user ID: #{user_id}")
+          return user_id
+        end
+      end
+    else
+      @logger.error("Error getting members in channel: #{response_body['error']}")
+      nil
+    end
+
+    nil
   end
   
 end

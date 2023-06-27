@@ -22,7 +22,7 @@ class GPT
     @slack_events_api_handler = slack_events_api_handler
     
     ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
-    environment = ENV['ENV'] || 'development'
+    environment = ENV['ENVIRONMENT'] || 'development'
   
     param_name = "open_ai_access_token-#{environment}"
     @open_ai_access_token = ssm_client.get_parameter(

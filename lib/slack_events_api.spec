@@ -6,8 +6,6 @@ describe 'SlackEventsAPIHandler' do
     allow_any_instance_of(Aws::SSM::Client).to receive(:get_parameter) do |_, args|
       if args[:name].include?('app_id')
         double(parameter: double(value: 'A05D7UH7GHH'))
-      elsif args[:name].include?('user_id')
-        double(parameter: double(value: 'U05D815D3PD'))
       elsif args[:name].include?('access_token')
         double(parameter: double(value: 'xoxb-your-token'))
       end
@@ -116,15 +114,6 @@ describe 'SlackEventsAPIHandler' do
     it 'should respond to URL verification events with the challenge' do
       slack_events_api = SlackEventsAPIHandler.new(url_verification_event)
       expect(slack_events_api.dispatch).to eq('3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P')
-    end
-
-  end
-
-  describe '#message' do
-
-    it 'should hangle message events' do
-      slack_events_api = SlackEventsAPIHandler.new(message_event)
-      slack_events_api.dispatch
     end
 
   end
@@ -261,6 +250,36 @@ describe 'SlackEventsAPIHandler' do
         }.to_json)
 
         expect(bot.get_user_profile(user_id)).to be_nil
+      end
+    end
+
+    context 'when the user profile is for the bot' do
+      before do
+        allow(response).to receive(:body).and_return({
+          ok: true,
+          profile: { 
+            first_name: 'John',
+            last_name: 'Doe',
+            real_name: 'John Doe',
+            email: 'john.doe@example.com',
+            phone: '1234567890',
+            title: 'Engineer',
+            app_id: 'A05D7UH7GHH'
+          }
+        }.to_json)
+      end
+      
+      it 'returns the user profile' do
+        expect(bot.get_user_profile(user_id))
+          .to eq({
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'real_name' => 'John Doe',
+            'email' => 'john.doe@example.com',
+            'phone' => '1234567890',
+            'title' => 'Engineer',
+            'app_id' => 'A05D7UH7GHH'
+        })
       end
     end
   end

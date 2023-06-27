@@ -25,6 +25,14 @@ image_repositories = []
 [production.deploy.parameters]
 stack_name = "ruby-slack-openai-chat-bot-production"
 s3_prefix = "ruby-slack-openai-chat-bot-production"
+resolve_s3 = true
+region = "us-east-1"
+profile = "AdministratorAccess-330731243300"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
+parameter_overrides = [
+  "ENVIRONMENT=production"
+]
 
 [default.package.parameters]
 resolve_s3 = true
