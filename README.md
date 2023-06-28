@@ -46,9 +46,18 @@ The application is configured to run in different environments (e.g., developmen
 
 ## Operation
 
-### View logs
+### Deployment
 
 Replace the profile with your correct AWS profile, and provide the correct stack name for your environment.
+#### Production
+
+    $ sam build && sam deploy --profile=3307312433
+00_AdministratorAccess --region us-east-1 --config-env=production
+
+#### Development
+
+    $ sam sync --profile=767678462952_AdministratorAccess --region us-east-1
+### View logs
 
     $ sam logs -t --profile=330731243300_AdministratorAccess --region=us-east-1 --stack-name=ruby-slack-openai-chat-bot-development
 
