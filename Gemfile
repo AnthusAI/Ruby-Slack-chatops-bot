@@ -11,6 +11,7 @@ group :test do
   gem "guard"
   gem "guard-rake"
   gem "rspec"
+  gem 'webmock'
   gem 'simplecov', require: false
   gem "pry"
   gem "byebug"

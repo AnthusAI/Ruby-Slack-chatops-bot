@@ -171,7 +171,7 @@ class SlackEventsAPIHandler
   end
 
   def event_mentions_me?
-    message_text_mentions_me = message_text.include?(user_id)
+    message_text_mentions_me = message_text.include?(user_id || '')
     @logger.info("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
     message_text_mentions_me
   end
@@ -264,38 +264,56 @@ class SlackEventsAPIHandler
     end
   end
 
-  # Return the stored user_id from a DynamoDB table, or get a list of users
-  # in the current Slack channel and check each one to see if the app_id
-  # matches the current app_id.  If so, store the user_id in the DynamoDB
-  # table and return it.
-  def user_id
-    @logger.info("Getting my current user ID...")
-
-    uri = URI("https://slack.com/api/conversations.members?channel=#{@slack_event['event']['channel']}")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{@access_token}"
-
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    response = http.request(request)
-    response_body = JSON.parse(response.body)
-
-    if response_body['ok']
-      user_ids = response_body['members']
-      @logger.info("Users in channel: #{user_ids.ai}")
-      user_ids.each do |user_id|
-        profile = get_user_profile(user_id)
-        if profile['api_app_id'] == @app_id
-          @logger.info("Found my user ID: #{user_id}")
-          return user_id
-        end
+  # Call users.profile.get to get the bot_id of the bot.
+  def bot_id
+    @logger.info("Getting my own current bot ID...")
+  
+    @bot_id ||= begin
+      uri = URI("https://slack.com/api/users.profile.get")
+      request = Net::HTTP::Get.new(uri)
+  
+      request["Authorization"] = "Bearer #{@access_token}"
+      
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      response = http.request(request)
+      response_body = JSON.parse(response.body)
+      
+      if response_body['ok']
+        bot_id = response_body['profile']['bot_id']
+        @logger.info("My bot ID: #{bot_id}")
+        bot_id
+      else
+        @logger.error("Error getting bot profile: #{response_body['error']}")
+        nil
       end
-    else
-      @logger.error("Error getting members in channel: #{response_body['error']}")
-      nil
     end
-
-    nil
+  end
+  
+  # Call bots.info to get the user_id of the bot.
+  def user_id
+    @logger.info("Getting my own current user ID...")
+  
+    @user_id ||= begin
+      uri = URI("https://slack.com/api/bots.info?bot=#{bot_id}")
+      request = Net::HTTP::Get.new(uri)
+  
+      request["Authorization"] = "Bearer #{@access_token}"
+      
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      response = http.request(request)
+      response_body = JSON.parse(response.body)
+      
+      if response_body['ok']
+        user_id = response_body['bot']['user_id']
+        @logger.info("My user ID: #{user_id}")
+        user_id
+      else
+        @logger.error("Error getting bot info: #{response_body['error']}")
+        nil
+      end
+    end
   end
   
 end

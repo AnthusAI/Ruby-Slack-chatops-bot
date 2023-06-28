@@ -2,14 +2,144 @@ require_relative 'spec_helper'
 require_relative 'slack_events_api'
 
 describe 'SlackEventsAPIHandler' do
+  let(:channel_id) { 'C01HYM7S9PD' }
+  let(:bot_id) { 'U01J218HDYS' }
+  let(:user1_id) { 'U01HYM5LRMQ' }
+  let(:user2_id) { 'U01HZ9PA37T' }
+  let(:bot_message) { 'Hello, I am a bot.' }
+  let(:user1_message) { 'Hello, bot.' }
+  let(:user2_message) { 'Hello, everyone.' }
+
   before do
     allow_any_instance_of(Aws::SSM::Client).to receive(:get_parameter) do |_, args|
       if args[:name].include?('app_id')
         double(parameter: double(value: 'A05D7UH7GHH'))
+      elsif args[:name].include?('user_id')
+        double(parameter: double(value: 'U05D815D3PD'))
       elsif args[:name].include?('access_token')
         double(parameter: double(value: 'xoxb-your-token'))
       end
     end
+    stub_request(:get, 'https://slack.com/api/bots.info?bot=A05D7UH7GHH')
+      .to_return(
+        status: 200,
+        body: {
+          "ok": true,
+          "bot": {
+              "id": "B123456",
+              "deleted": false,
+              "name": "beforebot",
+              "updated": 1449272004,
+              "app_id": "A123456",
+              "user_id": "U123456",
+              "icons": {
+                  "image_36": "https://...",
+                  "image_48": "https://...",
+                  "image_72": "https://..."
+              }
+          }
+        }.to_json,
+        headers: {}
+      )
+    stub_request(:get, "https://slack.com/api/conversations.history?channel=C01HYM7S9PD&limit=200")
+      .to_return(
+        status: 200,
+        body: {
+          "ok" => true,
+          "messages" => [
+            { "type" => "message", "user" => bot_id, "text" => bot_message },
+            { "type" => "message", "user" => user1_id, "text" => user1_message },
+            { "type" => "message", "user" => user2_id, "text" => user2_message }
+          ]
+        }.to_json,
+        headers: {}
+      )
+    # The bot profile.  TODO: Why call this since we know this from bots.info
+    stub_request(:get, "https://slack.com/api/users.profile.get?user=U01J218HDYS").
+      to_return(
+        status: 200,
+        body: {
+          "ok": true,
+          "profile": {
+              "title": "Head of Coffee Production",
+              "real_name": "John Smith",
+              "real_name_normalized": "John Smith",
+              "display_name": "john",
+              "display_name_normalized": "john",
+              "status_text": "Watching cold brew steep",
+              "first_name": "john",
+              "last_name": "smith"
+          }
+        }.to_json,
+        headers: {}
+      )
+    stub_request(:get, 'https://slack.com/api/users.profile.get?user=U01HYM5LRMQ')
+      .to_return(
+        status: 200,
+        body: {
+          "ok": true,
+          "profile": {
+            "title": 'Head of Coffee Production',
+            "real_name": 'John Smith',
+            "real_name_normalized": 'John Smith',
+            "display_name": 'john',
+            "display_name_normalized": 'john',
+            "status_text": 'Watching cold brew steep',
+            "first_name": 'john',
+            "last_name": 'smith'
+          }
+        }.to_json,
+        headers: {}
+      )
+    stub_request(:get, 'https://slack.com/api/users.profile.get?user=U01HZ9PA37T')
+          .to_return(
+            status: 200,
+            body: {
+              "ok": true,
+              "profile": {
+                "title": 'Head of Coffee Production',
+                "real_name": 'John Smith',
+                "real_name_normalized": 'John Smith',
+                "display_name": 'john',
+                "display_name_normalized": 'john',
+                "status_text": 'Watching cold brew steep',
+                "first_name": 'john',
+                "last_name": 'smith'
+              }
+            }.to_json,
+            headers: {}
+          )
+    stub_request(:post, "https://slack.com/api/chat.postMessage")
+      .to_return(
+        status: 200,
+        body: {
+          "ok" => true,
+          "channel" => "C01HYM7S9PD",
+          "ts" => "1627300000.000100",
+          "message" => {
+            "bot_id" => "B01J218HDYS",
+            "type" => "message",
+            "text" => "Hello, world!",
+            "user" => "U01HYM5LRMQ",
+            "ts" => "1627300000.000100",
+            "team" => "T01HYM5LRMQ",
+            "bot_profile" => {
+              "id" => "B01J218HDYS",
+              "deleted" => false,
+              "name" => "openai-chat-bot",
+              "updated" => 1627300000,
+              "app_id" => "A01J218HDYS",
+              "icons" => {
+                "image_36" => "https://a.slack-edge.com/80588/img/plugins/app/bot_36.png",
+                "image_48" => "https://a.slack-edge.com/80588/img/plugins/app/bot_48.png",
+                "image_72" => "https://a.slack-edge.com/80588/img/plugins/app/service_72.png"
+              },
+              "team_id" => "T01HYM5LRMQ"
+            }
+          }
+        }.to_json,
+        headers: {}
+      )
   end
 
   let(:url_verification_event) do
@@ -118,6 +248,15 @@ describe 'SlackEventsAPIHandler' do
 
   end
 
+  describe '#message' do
+
+    it 'should hangle message events' do
+      slack_events_api = SlackEventsAPIHandler.new(message_event)
+      slack_events_api.dispatch
+    end
+
+  end
+
   describe '#event_is_from_me?' do
 
     it 'returns true when the event is from the app' do
@@ -157,28 +296,6 @@ describe 'SlackEventsAPIHandler' do
   end
 
   describe '#get_conversation_history' do
-    let(:channel_id) { 'C01HYM7S9PD' }
-    let(:bot_id) { 'U01J218HDYS' }
-    let(:user1_id) { 'U01HYM5LRMQ' }
-    let(:user2_id) { 'U01HZ9PA37T' }
-    let(:bot_message) { 'Hello, I am a bot.' }
-    let(:user1_message) { 'Hello, bot.' }
-    let(:user2_message) { 'Hello, everyone.' }
-    let(:http) { instance_double('Net::HTTP') }
-    let(:response) { instance_double('Net::HTTPResponse', body: {
-      "ok" => true,
-      "messages" => [
-        { "type" => "message", "user" => bot_id, "text" => bot_message },
-        { "type" => "message", "user" => user1_id, "text" => user1_message },
-        { "type" => "message", "user" => user2_id, "text" => user2_message }
-      ]
-    }.to_json) }
-
-    before do
-      allow(Net::HTTP).to receive(:new).and_return(http)
-      allow(http).to receive(:use_ssl=).with(true).and_return(true)
-      allow(http).to receive(:request).and_return(response)
-    end
   
     it 'fetches conversation history from a channel' do
       history = SlackEventsAPIHandler.new(message_event.to_json).
@@ -250,36 +367,6 @@ describe 'SlackEventsAPIHandler' do
         }.to_json)
 
         expect(bot.get_user_profile(user_id)).to be_nil
-      end
-    end
-
-    context 'when the user profile is for the bot' do
-      before do
-        allow(response).to receive(:body).and_return({
-          ok: true,
-          profile: { 
-            first_name: 'John',
-            last_name: 'Doe',
-            real_name: 'John Doe',
-            email: 'john.doe@example.com',
-            phone: '1234567890',
-            title: 'Engineer',
-            app_id: 'A05D7UH7GHH'
-          }
-        }.to_json)
-      end
-      
-      it 'returns the user profile' do
-        expect(bot.get_user_profile(user_id))
-          .to eq({
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'real_name' => 'John Doe',
-            'email' => 'john.doe@example.com',
-            'phone' => '1234567890',
-            'title' => 'Engineer',
-            'app_id' => 'A05D7UH7GHH'
-        })
       end
     end
   end

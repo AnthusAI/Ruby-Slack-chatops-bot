@@ -44,7 +44,17 @@ This project is a serverless application based on the AWS Serverless Application
 
 The application is configured to run in different environments (e.g., development, production) using environment variables and parameters stored in AWS Systems Manager (SSM) Parameter Store. The parameters are fetched at runtime and include the Slack App ID and Access Token.
 
-## Testing
+## Operation
+
+### View logs
+
+Replace the profile with your correct AWS profile, and provide the correct stack name for your environment.
+
+    $ sam logs -t --profile=330731243300_AdministratorAccess --region=us-east-1 --stack-name=ruby-slack-openai-chat-bot-development
+
+## Development
+
+### Testing
 
 The code includes a comprehensive suite of RSpec tests to ensure that it handles Slack events correctly. These tests cover the main event dispatching logic, as well as the individual handlers for the supported event types.
 

@@ -41,7 +41,7 @@ class GPT
     # for the current model.  We use this as a rough estimate without doing
     # the slower work of counting tokens.
     conversation_history =
-      conversation_history.slice(0, slack_messages_to_retrieve)
+      (conversation_history || []).slice(0, slack_messages_to_retrieve)
 
     until (
       estimate_tokens(
@@ -152,8 +152,15 @@ class GPT
     # return an error if the context window is exceeded in real life, and then
     # if that happens we handle it.  We want to avoid that because it slows
     # down the response time.
+
+    loop_tries = 0
+
     response = 
       loop do
+        # Abort if wehave tried too many times.
+        loop_tries += 1
+        break({ 'error' => { 'code' => 'too_many_tries' } }) if loop_tries > 10
+
         # Loop until the response is not a context-length error.
         response = api_response(conversation_history)
         break(response) unless response['error']
