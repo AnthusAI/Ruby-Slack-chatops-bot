@@ -17,40 +17,20 @@ Globals:
     MemorySize: 128
 
 Resources:
-  SlackEventsAPIHandlerHandlerFunction:
-    Type: AWS::Serverless::Function 
+
+  DependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
     Properties:
-      CodeUri: ./
-      Handler: sqs_message_processor.sqs_message_processor_lambda_handler
-      Runtime: ruby2.7
-      Environment: 
-        Variables:
-          ENVIRONMENT: !Ref ENVIRONMENT
-      Architectures:
-        - x86_64
-      Events:
-        SlackEvent:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt SlackEventsQueue.Arn
-      Policies:
-      - Statement:
-        - Sid: SSMDescribeParametersPolicy
-          Effect: Allow
-          Action:
-          - ssm:DescribeParameters
-          Resource: '*'
-        - Sid: SSMGetParameterPolicy
-          Effect: Allow
-          Action:
-          - ssm:GetParameters
-          - ssm:GetParameter
-          Resource: '*'
-  
-  SlackEventsQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-          VisibilityTimeout: 300
+      LayerName:  !Sub
+        - 'ruby-slack-openai-chat-bot-dependencies-layer-${Environment}'
+        - Environment: !Ref ENVIRONMENT
+      Description: A layer containing Ruby gem dependencies.
+      ContentUri: dependencies-layer/.
+      CompatibleRuntimes:
+        - ruby2.7
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: ruby2.7
 
   APIGatewayHandlerFunction:
     Type: AWS::Serverless::Function 
@@ -58,13 +38,16 @@ Resources:
       CodeUri: ./
       Handler: api_gateway.api_gateway_lambda_handler
       Runtime: ruby2.7
-      Environment: 
-        Variables:
-          ENVIRONMENT: !Ref ENVIRONMENT
+      Layers:
+        - !Ref DependenciesLayer
       Architectures:
         - x86_64
       Environment:
         Variables:
+          ENVIRONMENT: !Ref ENVIRONMENT
+          RUBYLIB: /opt/ruby/lib
+          BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
+          GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           SQS_QUEUE_URL: !Ref SlackEventsQueue
       Events:
         EventsAPI:
@@ -91,6 +74,46 @@ Resources:
             - sqs:SendMessage
             Resource: !GetAtt SlackEventsQueue.Arn
 
+  SlackEventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+          VisibilityTimeout: 300
+
+  SlackEventsAPIHandlerHandlerFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: ./
+      Handler: sqs_message_processor.sqs_message_processor_lambda_handler
+      Runtime: ruby2.7
+      Layers:
+        - !Ref DependenciesLayer
+      Environment: 
+        Variables:
+          ENVIRONMENT: !Ref ENVIRONMENT
+          RUBYLIB: /opt/ruby/lib
+          BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
+          GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0          
+      Architectures:
+        - x86_64
+      Events:
+        SlackEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SlackEventsQueue.Arn
+      Policies:
+      - Statement:
+        - Sid: SSMDescribeParametersPolicy
+          Effect: Allow
+          Action:
+          - ssm:DescribeParameters
+          Resource: '*'
+        - Sid: SSMGetParameterPolicy
+          Effect: Allow
+          Action:
+          - ssm:GetParameters
+          - ssm:GetParameter
+          Resource: '*'
+  
 Outputs:
   SlackEventsAPIHandlerEndpointUrl:
     Description: "API Gateway endpoint URL for Prod stage for Slack Events API handler function"

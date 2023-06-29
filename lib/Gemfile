@@ -1,7 +1,0 @@
-source "https://rubygems.org"
-
-gem "ruby-openai"
-gem "awesome_print"
-gem "activesupport"
-
-ruby '~> 2.7.0'
