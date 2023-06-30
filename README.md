@@ -67,6 +67,12 @@ Replace the profile with your correct AWS profile, and provide the correct stack
 
 The code includes a comprehensive suite of RSpec tests to ensure that it handles Slack events correctly. These tests cover the main event dispatching logic, as well as the individual handlers for the supported event types.
 
+  bundle exec rake spec
+
+You can use Guard to watch the code and run the specs when anything changes:
+
+  bundle exec guard
+
 ## Contribution
 
 Contributions to this project are welcome! Feel free to fork the repository and submit a pull request with your changes. Before submitting your pull request, please ensure that your changes pass the test suite and that you have added tests for any new functionality. Also, please update the README if necessary to reflect your changes.
