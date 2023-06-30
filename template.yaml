@@ -49,6 +49,7 @@ Resources:
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           SQS_QUEUE_URL: !Ref SlackEventsQueue
+      Tracing: Active
       Events:
         EventsAPI:
           Type: Api 
@@ -87,14 +88,15 @@ Resources:
       Runtime: ruby2.7
       Layers:
         - !Ref DependenciesLayer
+      Architectures:
+        - x86_64
       Environment: 
         Variables:
           ENVIRONMENT: !Ref ENVIRONMENT
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
-          GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0          
-      Architectures:
-        - x86_64
+          GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
+      Tracing: Active
       Events:
         SlackEvent:
           Type: SQS
