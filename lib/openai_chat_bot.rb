@@ -30,7 +30,7 @@ class GPT
     ).parameter.value
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3
+    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt4
     @logger.info "OpenAI model: #{model_name}"
   end
   
