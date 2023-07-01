@@ -6,7 +6,7 @@ require_relative 'lib/slack_events_api'
 
 def api_gateway_lambda_handler(event:, context:)
   logger = Logger.new(STDOUT)
-  logger.info("Received event from Lambda: #{event.ai}")
+  logger.info("Received Slack API event from API Gateway:\n#{event.ai}")
 
   # We need to examine the Slack message to see if it's a URL verification
   # request or a message event.  The Slack event is passed as a JSON string
@@ -40,7 +40,8 @@ def api_gateway_lambda_handler(event:, context:)
   sqs = Aws::SQS::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
   sqs.send_message(
     queue_url: ENV['SQS_QUEUE_URL'],
-    message_body: event['body']
+    message_body: event['body'],
+    message_group_id: JSON.parse(event['body'])['event']['client_msg_id']
   )
 
   # Respond to the Slack API immediately with a 200 OK, once the message

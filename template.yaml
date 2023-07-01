@@ -93,7 +93,10 @@ Resources:
   SlackEventsQueue:
     Type: AWS::SQS::Queue
     Properties:
-          VisibilityTimeout: 300
+      QueueName: SlackEventsQueue.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      VisibilityTimeout: 300
 
   SlackEventsAPIHandlerHandlerFunction:
     Type: AWS::Serverless::Function 
