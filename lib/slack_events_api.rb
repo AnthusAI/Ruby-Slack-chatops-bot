@@ -12,7 +12,7 @@ class SlackEventsAPIHandler
   def initialize(slack_event)
     @logger = Logger.new(STDOUT)
     @slack_event = JSON.parse(slack_event)
-    @logger.info("Slack event: #{@slack_event.ai}")
+    @logger.info("Slack event: #{JSON.pretty_generate(slack_event)}")
     
     ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
     environment = ENV['ENVIRONMENT'] || 'development'

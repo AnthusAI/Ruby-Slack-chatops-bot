@@ -121,6 +121,7 @@ DEPENDENCIES
   pry
   rake
   rspec
+  rspec-mocks
   ruby-openai
   simplecov
   webmock

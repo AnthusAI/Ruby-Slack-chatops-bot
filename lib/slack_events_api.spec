@@ -20,7 +20,7 @@ describe 'SlackEventsAPIHandler' do
         double(parameter: double(value: 'xoxb-your-token'))
       end
     end
-    stub_request(:get, 'https://slack.com/api/bots.info?bot=A05D7UH7GHH')
+    stub_request(:get, 'https://slack.com/api/bots.info?bot=U01J218HDYS')
       .to_return(
         status: 200,
         body: {
@@ -54,38 +54,56 @@ describe 'SlackEventsAPIHandler' do
         }.to_json,
         headers: {}
       )
-    # The bot profile.  TODO: Why call this since we know this from bots.info
-    stub_request(:get, "https://slack.com/api/users.profile.get?user=U01J218HDYS").
+    stub_request(:get, "https://slack.com/api/users.profile.get").
       to_return(
         status: 200,
         body: {
           "ok": true,
           "profile": {
-              "title": "Head of Coffee Production",
-              "real_name": "John Smith",
-              "real_name_normalized": "John Smith",
-              "display_name": "john",
-              "display_name_normalized": "john",
-              "status_text": "Watching cold brew steep",
-              "first_name": "john",
-              "last_name": "smith"
+              "title": "Bot",
+              "real_name": "Bot Botly",
+              "real_name_normalized": "Bot Botly",
+              "display_name": "bot",
+              "display_name_normalized": "bot",
+              "status_text": "Watching electrons spin",
+              "first_name": "bot",
+              "last_name": "botly",
+              "bot_id": bot_id
           }
         }.to_json,
         headers: {}
       )
+    stub_request(:get, "https://slack.com/api/users.profile.get?user=U01J218HDYS").
+          to_return(
+            status: 200,
+            body: {
+              "ok": true,
+              "profile": {
+                  "title": "Head of Coffee Production",
+                  "real_name": "John Smith",
+                  "real_name_normalized": "John Smith",
+                  "display_name": "john",
+                  "display_name_normalized": "john",
+                  "status_text": "Watching cold brew steep",
+                  "first_name": "john",
+                  "last_name": "smith"
+              }
+            }.to_json,
+            headers: {}
+          )
     stub_request(:get, 'https://slack.com/api/users.profile.get?user=U01HYM5LRMQ')
       .to_return(
         status: 200,
         body: {
           "ok": true,
           "profile": {
-            "title": 'Head of Coffee Production',
-            "real_name": 'John Smith',
-            "real_name_normalized": 'John Smith',
-            "display_name": 'john',
-            "display_name_normalized": 'john',
-            "status_text": 'Watching cold brew steep',
-            "first_name": 'john',
+            "title": 'Assitant to the Head of Coffee Production',
+            "real_name": 'Dale Smith',
+            "real_name_normalized": 'Dale Smith',
+            "display_name": 'dale',
+            "display_name_normalized": 'dale',
+            "status_text": 'Watching someone watch cold brew steep',
+            "first_name": 'dale',
             "last_name": 'smith'
           }
         }.to_json,
@@ -97,13 +115,13 @@ describe 'SlackEventsAPIHandler' do
             body: {
               "ok": true,
               "profile": {
-                "title": 'Head of Coffee Production',
-                "real_name": 'John Smith',
-                "real_name_normalized": 'John Smith',
-                "display_name": 'john',
-                "display_name_normalized": 'john',
-                "status_text": 'Watching cold brew steep',
-                "first_name": 'john',
+                "title": 'Assistant to the Assistant of the Head of Coffee Production',
+                "real_name": 'Daryl Smith',
+                "real_name_normalized": 'Daryl Smith',
+                "display_name": 'daryl',
+                "display_name_normalized": 'daryl',
+                "status_text": 'Watching someone watch someone watch cold brew steep',
+                "first_name": 'daryl',
                 "last_name": 'smith'
               }
             }.to_json,

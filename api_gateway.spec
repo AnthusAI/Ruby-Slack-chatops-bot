@@ -1,5 +1,6 @@
 require 'rspec'
 require 'aws-sdk-sqs'
+require_relative 'lib/spec_helper'
 require_relative 'api_gateway'
 
 describe 'lambda_handler' do
@@ -42,14 +43,18 @@ describe 'lambda_handler' do
     let(:event) do
       {
         'body' => {
-          'type' => 'message',
-          'text' => 'Hello'
+          'event' => {
+            'type' => 'message',
+            'text' => 'Hello'
+          }
         }.to_json
       }
     end
 
     before do
       allow(sqs_client).to receive(:send_message).and_return(true)
+      allow_any_instance_of(SlackEventsAPIHandler).to receive(
+          :event_needs_processing?).and_return(true)
     end
 
     it 'responds with Message received' do
