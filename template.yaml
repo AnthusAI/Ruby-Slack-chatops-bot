@@ -32,6 +32,19 @@ Resources:
     Metadata:
       BuildMethod: ruby2.7
 
+  APIGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Description: 'Prod stage'
+      TracingEnabled: true
+      MethodSettings:
+      - HttpMethod: '*'
+        LoggingLevel: INFO
+        ResourcePath: '/*'
+        MetricsEnabled: true
+        DataTraceEnabled: true
+
   APIGatewayHandlerFunction:
     Type: AWS::Serverless::Function 
     Properties:
@@ -54,6 +67,8 @@ Resources:
         EventsAPI:
           Type: Api 
           Properties:
+            RestApiId: 
+                !Ref APIGateway
             Path: /events
             Method: post
       Policies:
@@ -119,4 +134,4 @@ Resources:
 Outputs:
   SlackEventsAPIHandlerEndpointUrl:
     Description: "API Gateway endpoint URL for Prod stage for Slack Events API handler function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/events/"
+    Value: !Sub "https://${APIGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/events/"
