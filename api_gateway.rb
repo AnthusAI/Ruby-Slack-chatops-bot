@@ -25,6 +25,14 @@ def api_gateway_lambda_handler(event:, context:)
     }
   end
 
+  unless slack_event_handler.event_needs_processing?
+    logger.info("Event does not need processing.  Responding with 200 OK.")
+    return {
+      statusCode: 200,
+      body: 'Event does not need processing.'
+    }
+  end
+
   logger.info("Enqueing SQS message for processing and responding with 200 OK.")
 
   # When it's a message event, we must post the message to the SQS queue for

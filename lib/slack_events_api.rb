@@ -63,15 +63,13 @@ class SlackEventsAPIHandler
   end
 
   def message_subtype
+    return nil if @slack_event['event'].nil?
     @slack_event['event']['subtype']
   end
 
   def message_text
     @message_text ||=
       case message_subtype
-      when 'message_deleted'
-        @logger.info("Ignoring message_deleted event.")
-        return
       when 'message_changed'
         @logger.info("Handling message_changed event.")
         @slack_event['event']['message']['text']
@@ -82,11 +80,14 @@ class SlackEventsAPIHandler
 
   def message
     @logger.info("Slack message event with text: \"#{message_text}\"")
-  
-    if (( event_mentions_me? or
-          event_is_direct_message? ) and
-            not event_is_from_me?)
 
+    case message_subtype
+    when 'message_deleted'
+      @logger.info("Ignoring message_deleted event.")
+      return
+    end
+  
+    if event_needs_processing?
       @logger.info("Responding to message event.")
 
       @response_slack_message = send_message(
@@ -198,6 +199,15 @@ class SlackEventsAPIHandler
     event_is_direct_message = channel_type == 'im'
     @logger.info("is \"#{channel_type}\" the type of this channel, \"im\"?  #{event_is_direct_message ? 'Yes!' : 'No.'}")
     event_is_direct_message
+  end
+
+  def event_needs_processing?
+    (( event_mentions_me? or
+      event_is_direct_message? ) and
+        not event_is_from_me?).tap do |does_event_need_processing|
+          @logger.info('Does this event need processing? ' +
+            (does_event_need_processing ? 'Yes!' : 'No.'))
+        end
   end
 
   def get_conversation_history(channel_id)
