@@ -21,13 +21,8 @@ class GPT
     @logger = Logger.new(STDOUT)
     @slack_events_api_handler = slack_events_api_handler
     
-    ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
-    environment = ENV['ENVIRONMENT'] || 'development'
-  
-    param_name = "open_ai_access_token-#{environment}"
-    @open_ai_access_token = ssm_client.get_parameter(
-      name: param_name, with_decryption: true
-    ).parameter.value
+    environment =           ENV['ENVIRONMENT'] || 'development'
+    @open_ai_access_token = ENV['OPEN_AI_API_TOKEN']
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
     @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt4

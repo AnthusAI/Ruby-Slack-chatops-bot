@@ -8,10 +8,19 @@ Parameters:
     Description: 'Name of runtime environment: development, test, staging, production'
     Type: 'String'
     Default: 'development'
-  AWSResourcePrefix:
+  AwsResourcePrefix:
     Description: 'The name prefix for resources related to the app.'
     Type: 'String'
     Default: 'slack-bot'
+  SlackAppId:
+    Description: 'Your App ID for your Slack app.'
+    Type: 'String'
+  SlackAppAccessToken:
+    Description: 'Your "Bot User OAuth Token" for your Slack app.'
+    Type: 'String'
+  OpenAiApiToken:
+    Description: 'Your API token from OpenAI.'
+    Type: 'String'
 
 Globals:
   Function:
@@ -25,7 +34,7 @@ Resources:
     Properties:
       LayerName: !Sub
         - '${Prefix}-dependencies-layer-${Environment}'
-        - Prefix: !Ref AWSResourcePrefix
+        - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       Description: A layer containing Ruby gem dependencies.
       ContentUri: dependencies-layer/.
@@ -53,7 +62,7 @@ Resources:
     Properties:
       FunctionName: !Sub
         - '${Prefix}-api-gateway-handler-${Environment}'
-        - Prefix: !Ref AWSResourcePrefix
+        - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       CodeUri: ./
       Handler: api_gateway.api_gateway_lambda_handler
@@ -70,6 +79,9 @@ Resources:
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           SQS_QUEUE_URL: !Ref SlackEventsQueue
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
+          SLACK_APP_ID: !Ref SlackAppId
+          SLACK_APP_ACCESS_TOKEN: !Ref SlackAppAccessToken
+          OPEN_AI_API_TOKEN: !Ref OpenAiApiToken
       Tracing: Active
       Events:
         EventsAPI:
@@ -81,17 +93,6 @@ Resources:
             Method: post
       Policies:
         - Statement:
-          - Sid: SSMDescribeParametersPolicy
-            Effect: Allow
-            Action:
-            - ssm:DescribeParameters
-            Resource: '*'
-          - Sid: SSMGetParameterPolicy
-            Effect: Allow
-            Action:
-            - ssm:GetParameters
-            - ssm:GetParameter
-            Resource: '*'
           - Sid: SQSSendMessagePolicy
             Effect: Allow
             Action:
@@ -113,7 +114,7 @@ Resources:
     Properties:
       QueueName: !Sub
         - '${Prefix}-events-queue-${Environment}.fifo'
-        - Prefix: !Ref AWSResourcePrefix
+        - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       FifoQueue: true
       ContentBasedDeduplication: true
@@ -124,7 +125,7 @@ Resources:
     Properties:
       FunctionName: !Sub
         - '${Prefix}-slack-event-processor-${Environment}'
-        - Prefix: !Ref AWSResourcePrefix
+        - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       CodeUri: ./
       Handler: sqs_message_processor.sqs_message_processor_lambda_handler
@@ -141,6 +142,9 @@ Resources:
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
           SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
+          SLACK_APP_ID: !Ref SlackAppId
+          SLACK_APP_ACCESS_TOKEN: !Ref SlackAppAccessToken
+          OPEN_AI_API_TOKEN: !Ref OpenAiApiToken
       Tracing: Active
       Events:
         SlackEvent:
@@ -149,17 +153,6 @@ Resources:
             Queue: !GetAtt SlackEventsQueue.Arn
       Policies:
       - Statement:
-        - Sid: SSMDescribeParametersPolicy
-          Effect: Allow
-          Action:
-          - ssm:DescribeParameters
-          Resource: '*'
-        - Sid: SSMGetParameterPolicy
-          Effect: Allow
-          Action:
-          - ssm:GetParameters
-          - ssm:GetParameter
-          Resource: '*'
         - Sid: DynamoDBCrudPolicy
           Effect: Allow
           Action:
@@ -178,7 +171,7 @@ Resources:
     Properties:
       TableName: !Sub
         - '${Prefix}-key-value-store-${Environment}'
-        - Prefix: !Ref AWSResourcePrefix
+        - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       AttributeDefinitions:
         - AttributeName: key
@@ -198,7 +191,7 @@ Resources:
     Properties:
       TableName: !Sub
         - '${Prefix}-slack-conversation-history-${Environment}'
-        - Prefix: !Ref AWSResourcePrefix
+        - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       AttributeDefinitions:
         - AttributeName: channelId

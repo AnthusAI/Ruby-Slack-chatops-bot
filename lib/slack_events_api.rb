@@ -15,19 +15,10 @@ class SlackEventsAPIHandler
     @logger = Logger.new(STDOUT)
     @slack_event = JSON.parse(slack_event)
     @logger.info("Processing Slack event from SQS:\n#{slack_event.ai}")
-    
-    ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
-    environment = ENV['ENVIRONMENT'] || 'development'
 
-    param_name = "slack_app_id-#{environment}"
-    @app_id = ssm_client.get_parameter(
-      name: param_name, with_decryption: true
-    ).parameter.value
-    
-    param_name = "slack_app_access_token-#{environment}"
-    @access_token = ssm_client.get_parameter(
-      name: param_name, with_decryption: true
-    ).parameter.value
+    environment =   ENV['ENVIRONMENT'] || 'development'
+    @app_id =       ENV['SLACK_APP_ID']
+    @access_token = ENV['SLACK_APP_ACCESS_TOKEN']
   end
 
   def event_type

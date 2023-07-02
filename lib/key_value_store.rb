@@ -4,7 +4,7 @@ require 'aws-sdk-dynamodb'
 class KeyValueStore
   def initialize(dynamodb_client: nil)
     @dynamodb = dynamodb_client || Aws::DynamoDB::Client.new
-    @table_name = ENV['KEY_VALUE_STORE']
+    @table_name = ENV['KEY_VALUE_STORE_TABLE']
     @logger = Logger.new(STDOUT)
   end
 
