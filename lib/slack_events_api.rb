@@ -217,53 +217,29 @@ class SlackEventsAPIHandler
   end
 
   def get_user_profile(user_id)
-    @profile_cache ||= {}
-    @profile_cache[user_id] && Time.now - @profile_cache[user_id][:timestamp] < 3600 ? @profile_cache[user_id][:data] : fetch_user_profile(user_id)
-  end
-  
-  def fetch_user_profile(user_id)
-    uri = URI("https://slack.com/api/users.profile.get?user=#{user_id}")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{@access_token}"
-    response = Net::HTTP.start(uri.host, uri.port, :use_ssl => true) { |http| http.request(request) }
-    response_body = JSON.parse(response.body)
-    response_body['ok'] ? cache_and_return_profile(user_id, response_body['profile']) : log_error_and_return_nil(response_body['error'])
-  end
-  
-  def cache_and_return_profile(user_id, profile)
-    @profile_cache[user_id] = { data: profile, timestamp: Time.now }
-    profile
-  end
-  
-  def bot_id
-    @bot_id ||= KeyValueStore.new.get('bot_id') do
-      fetch_bot_id.tap do |fetched_bot_id|
-        KeyValueStore.new.set('bot_id', fetched_bot_id)
-      end
+    KeyValueStore.new.get(key:"user_profiles/#{user_id}") do
+      Slack::Web::Client.new(token: @access_token).
+        users_profile_get(user: user_id)['profile']
     end
   end
   
-  def fetch_bot_id
-    uri = URI("https://slack.com/api/users.profile.get")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{@access_token}"
-    response = Net::HTTP.start(uri.host, uri.port, :use_ssl => true) { |http| http.request(request) }
-    response_body = JSON.parse(response.body)
-    response_body['ok'] ? response_body['profile']['bot_id'] : log_error_and_return_nil(response_body['error'])
+  def bot_id
+    @bot_id ||= KeyValueStore.new.get(key:'bot_id') do
+      profile_info =
+        Slack::Web::Client.new(token: @access_token).users_profile_get
+      profile_info['ok'] ? profile_info['profile']['bot_id'] : log_error_and_return_nil(profile_info['error'])
+    end
   end
-  
+    
   def user_id
-    @user_id ||= fetch_user_id
-  end
-  
-  def fetch_user_id
-    uri = URI("https://slack.com/api/bots.info?bot=#{bot_id}")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{@access_token}"
-    response = Net::HTTP.start(uri.host, uri.port, :use_ssl => true) { |http| http.request(request) }
-    response_body = JSON.parse(response.body)
-    response_body['ok'] ? response_body['bot']['user_id'] : log_error_and_return_nil(response_body['error'])
-  end
+    @user_id ||= KeyValueStore.new.get(key:'user_id') do
+      bot_info = 
+        Slack::Web::Client.new(token: @access_token).bots_info(bot: bot_id)
+      bot_info['ok'] ?
+        bot_info['bot']['user_id'] :
+        log_error_and_return_nil(bot_info['error'])
+    end
+  end  
   
   def log_error_and_return_nil(error)
     @logger.error("Error: #{error}")

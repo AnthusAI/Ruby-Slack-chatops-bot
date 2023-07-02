@@ -8,7 +8,7 @@ class KeyValueStore
     @logger = Logger.new(STDOUT)
   end
 
-  def set(key, value, ttl: (Time.now + 3600).to_i)  # TTL defaults to 1 hour
+  def set(key:, value:, ttl: (Time.now + 3600).to_i)  # TTL defaults to 1 hour
     @logger.info("Setting key: #{key} => #{value}, TTL: #{ttl}")
     begin
       @dynamodb.put_item({
@@ -24,7 +24,7 @@ class KeyValueStore
     end
   end
   
-  def get(key, &block)
+  def get(key:, &block)
     @logger.info("Getting key: #{key}")
     begin
       result = @dynamodb.get_item({
@@ -42,7 +42,7 @@ class KeyValueStore
         if block_given?
           @logger.info("Computing value for key: #{key}")
           value = yield
-          set(key, value)
+          set(key:key, value:value)
           value
         end
       end

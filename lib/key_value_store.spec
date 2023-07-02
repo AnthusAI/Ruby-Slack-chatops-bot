@@ -26,7 +26,7 @@ RSpec.describe KeyValueStore do
         }
       ))
       
-      store.set(key, value, ttl: ttl)
+      store.set(key:key, value:value, ttl: ttl)
     end
   end
 
@@ -40,7 +40,7 @@ RSpec.describe KeyValueStore do
       end
         
       it 'returns the value' do
-        expect(store.get(key)).to eq(value)
+        expect(store.get(key:key)).to eq(value)
       end
     end
       
@@ -63,13 +63,13 @@ RSpec.describe KeyValueStore do
             }
           ))
   
-          expect(store.get(key) { computed_value }).to eq(computed_value)
+          expect(store.get(key:key) { computed_value }).to eq(computed_value)
         end
       end
         
       context 'and no block is provided' do
         it 'returns nil' do
-          expect(store.get(key)).to be_nil
+          expect(store.get(key:key)).to be_nil
         end
       end
     end
