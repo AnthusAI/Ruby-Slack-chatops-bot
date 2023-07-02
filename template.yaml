@@ -1,15 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  ruby-slack-openai-chat-bot
-
-  Sample SAM Template for ruby-slack-openai-chat-bot
+  OpenAI-powered chat bot for Slack.
 
 Parameters:
-  ENVIRONMENT:
-    Description: 'development, test, staging, production'
+  Environment:
+    Description: 'Name of runtime environment: development, test, staging, production'
     Type: 'String'
     Default: 'development'
+  AWSResourcePrefix:
+    Description: 'The name prefix for resources related to the app.'
+    Type: 'String'
+    Default: 'slack-bot'
 
 Globals:
   Function:
@@ -21,9 +23,10 @@ Resources:
   DependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName:  !Sub
-        - 'ruby-slack-openai-chat-bot-dependencies-layer-${Environment}'
-        - Environment: !Ref ENVIRONMENT
+      LayerName: !Sub
+        - '${Prefix}-dependencies-layer-${Environment}'
+        - Prefix: !Ref AWSResourcePrefix
+          Environment: !Ref Environment
       Description: A layer containing Ruby gem dependencies.
       ContentUri: dependencies-layer/.
       CompatibleRuntimes:
@@ -48,6 +51,10 @@ Resources:
   APIGatewayHandlerFunction:
     Type: AWS::Serverless::Function 
     Properties:
+      FunctionName: !Sub
+        - '${Prefix}-api-gateway-handler-${Environment}'
+        - Prefix: !Ref AWSResourcePrefix
+          Environment: !Ref Environment
       CodeUri: ./
       Handler: api_gateway.api_gateway_lambda_handler
       Runtime: ruby2.7
@@ -57,12 +64,12 @@ Resources:
         - x86_64
       Environment:
         Variables:
-          ENVIRONMENT: !Ref ENVIRONMENT
+          ENVIRONMENT: !Ref Environment
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           SQS_QUEUE_URL: !Ref SlackEventsQueue
-          KEY_VALUE_STORE: !Ref KeyValueStoreDynamoDBTable
+          KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
       Tracing: Active
       Events:
         EventsAPI:
@@ -105,8 +112,9 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: !Sub
-        - 'ruby_slack_openai_chat_bot_events_queue_${Environment}.fifo'
-        - Environment: !Ref ENVIRONMENT
+        - '${Prefix}-events-queue-${Environment}.fifo'
+        - Prefix: !Ref AWSResourcePrefix
+          Environment: !Ref Environment
       FifoQueue: true
       ContentBasedDeduplication: true
       VisibilityTimeout: 300
@@ -114,6 +122,10 @@ Resources:
   SlackEventsAPIHandlerHandlerFunction:
     Type: AWS::Serverless::Function 
     Properties:
+      FunctionName: !Sub
+        - '${Prefix}-slack-event-processor-${Environment}'
+        - Prefix: !Ref AWSResourcePrefix
+          Environment: !Ref Environment
       CodeUri: ./
       Handler: sqs_message_processor.sqs_message_processor_lambda_handler
       Runtime: ruby2.7
@@ -123,11 +135,12 @@ Resources:
         - x86_64
       Environment: 
         Variables:
-          ENVIRONMENT: !Ref ENVIRONMENT
+          ENVIRONMENT: !Ref Environment
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
-          KEY_VALUE_STORE: !Ref KeyValueStoreDynamoDBTable
+          KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
+          SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
       Tracing: Active
       Events:
         SlackEvent:
@@ -156,11 +169,17 @@ Resources:
           - dynamodb:PutItem
           - dynamodb:UpdateItem
           - dynamodb:DeleteItem
-          Resource: !GetAtt KeyValueStoreDynamoDBTable.Arn
+          Resource: 
+          - !GetAtt KeyValueStoreDynamoDBTable.Arn
+          - !GetAtt SlackConversationHistoryTable.Arn
 
   KeyValueStoreDynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      TableName: !Sub
+        - '${Prefix}-key-value-store-${Environment}'
+        - Prefix: !Ref AWSResourcePrefix
+          Environment: !Ref Environment
       AttributeDefinitions:
         - AttributeName: key
           AttributeType: S
@@ -170,14 +189,32 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-      TableName: !Sub
-        - 'ruby-slack-openai-chat-bot-key-value-store-${Environment}'
-        - Environment: !Ref ENVIRONMENT
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+
+  SlackConversationHistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub
+        - '${Prefix}-slack-conversation-history-${Environment}'
+        - Prefix: !Ref AWSResourcePrefix
+          Environment: !Ref Environment
+      AttributeDefinitions:
+        - AttributeName: channelId
+          AttributeType: S
+        - AttributeName: ts
+          AttributeType: N
+      KeySchema:
+        - AttributeName: channelId
+          KeyType: HASH
+        - AttributeName: ts
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
   
 Outputs:
   SlackEventsAPIHandlerEndpointUrl:
-    Description: "API Gateway endpoint URL for Prod stage for Slack Events API handler function"
+    Description: "API Gateway endpoint URL for Prod stage for Slack Events API handler function."
     Value: !Sub "https://${APIGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/events/"
