@@ -4,7 +4,9 @@ require 'uri'
 require 'aws-sdk-ssm'
 require 'awesome_print'
 require 'active_support'
+require 'slack-ruby-client'
 require_relative 'openai_chat_bot'
+require_relative 'key_value_store'
 
 class SlackEventsAPIHandler
   attr_reader :app_id, :user_id
@@ -124,54 +126,34 @@ class SlackEventsAPIHandler
   
   def send_message(channel, text)
     @logger.info("Sending message to Slack: #{text}")
-    uri = URI.parse("https://slack.com/api/chat.postMessage")
-  
-    request = Net::HTTP::Post.new(uri)
-    request.content_type = "application/x-www-form-urlencoded"
-    request["Authorization"] = "Bearer #{@access_token}"
-    request.set_form_data(
-      "channel" => channel,
-      "text" => text,
-    )
-  
-    req_options = {
-      use_ssl: uri.scheme == "https",
-    }
-  
-    Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
-      http.request(request)
-    end.tap do |response|
-      @logger.info("Sent message to Slack: #{response.body.ai}")
-      return JSON.parse(response.body)
+    
+    client = Slack::Web::Client.new(token: @access_token)
+    
+    client.chat_postMessage(channel: channel, text: text).tap do |response|
+      @logger.info("Sent message to Slack: #{response.inspect}")
     end
   end
 
   def update_message(channel, text, ts)
-    @logger.info("Updating existing message from timestamp #{ts} in Slack: #{text}")
-    uri = URI.parse("https://slack.com/api/chat.update")
+    @logger.info(
+      "Updating existing message from timestamp #{ts} in Slack: #{text}")
   
-    request = Net::HTTP::Post.new(uri)
-    request.content_type = "application/x-www-form-urlencoded"
-    request["Authorization"] = "Bearer #{@access_token}"
-    request.set_form_data(
-      "channel" => channel,
-      "text" => text,
-      "ts" => ts, # Timestamp of the message to update
-    )
+    client = Slack::Web::Client.new(token: @access_token)
   
-    req_options = {
-      use_ssl: uri.scheme == "https",
-    }
-  
-    response = Net::HTTP.start(uri.hostname, uri.port, req_options) do |http|
-      http.request(request)
-    end.tap do |response|
-      @logger.info("Updated message in Slack: #{response.body.ai}")
-      return JSON.parse(response.body)
+    client.chat_update(
+      channel: channel,
+      text: text,
+      ts: ts # Timestamp of the message to update
+    ).tap do |response|
+      @logger.info("Updated message in Slack: #{response.inspect}")
     end
   end
 
   def event_mentions_me?
+    if user_id.blank?
+      @logger.warn("This app does not have a user ID!")
+      return false
+    end
     message_text_mentions_me = message_text.include?(user_id || '')
     @logger.info("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
     message_text_mentions_me
@@ -211,119 +193,81 @@ class SlackEventsAPIHandler
   end
 
   def get_conversation_history(channel_id)
-    uri = URI("https://slack.com/api/conversations.history?channel=#{channel_id}&limit=200")
-    request = Net::HTTP::Get.new(uri)
-    request["Authorization"] = "Bearer #{@access_token}"
-  
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    response = http.request(request)
-    response_body = JSON.parse(response.body)
-  
-    if response_body['ok']
-      messages = response_body['messages']
-      @logger.info("Conversation history: #{messages.ai}")
+    client = Slack::Web::Client.new(token: @access_token)
+    response = client.conversations_history(channel: channel_id, limit: 200)
+
+    if response['ok']
+      messages = response['messages']
+      @logger.info("Conversation history: #{messages.inspect}")
+
       messages.reject{|message|
         @response_slack_message &&
-          message['ts'].eql?(@response_slack_message['ts']) }.
-        map do |message|
-        {
-          'user_id' => message['user'],
-          'user_profile' => get_user_profile(message['user']),
-          'message' => message['text']
-        }
-      end
+        message['ts'].eql?(@response_slack_message['ts']) }.
+          map do |message|
+            {
+              'user_id' => message['user'],
+              'user_profile' => get_user_profile(message['user']),
+              'message' => message['text']
+            }
+          end
     else
-      @logger.error("Error getting conversation history: #{response_body['error']}")
+      @logger.error("Error getting conversation history: #{response['error']}")
       nil
     end
   end
 
   def get_user_profile(user_id)
-    @logger.info("Getting user profile for user ID: #{user_id}")
     @profile_cache ||= {}
-    if @profile_cache[user_id] && Time.now - @profile_cache[user_id][:timestamp] < 3600
-      # Return the cached result if it's less than an hour old
-      return @profile_cache[user_id][:data]
-    end
-
+    @profile_cache[user_id] && Time.now - @profile_cache[user_id][:timestamp] < 3600 ? @profile_cache[user_id][:data] : fetch_user_profile(user_id)
+  end
+  
+  def fetch_user_profile(user_id)
     uri = URI("https://slack.com/api/users.profile.get?user=#{user_id}")
     request = Net::HTTP::Get.new(uri)
     request["Authorization"] = "Bearer #{@access_token}"
-    
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    response = http.request(request)
+    response = Net::HTTP.start(uri.host, uri.port, :use_ssl => true) { |http| http.request(request) }
     response_body = JSON.parse(response.body)
-    
-    if response_body['ok']
-      profile = response_body['profile']
-      @logger.info("User profile: #{profile.ai}")
-      
-      # Cache the result with a timestamp
-      @profile_cache[user_id] = { data: profile, timestamp: Time.now }
-
-      # If this is from the current app_id then we can get the user_id from the
-      # event itself, so we can cache the result by user_id.
-      @user_id = user_id if event_app_id == @app_id
-      
-      profile
-    else
-      @logger.error("Error getting user profile: #{response_body['error']}")
-      nil
-    end
+    response_body['ok'] ? cache_and_return_profile(user_id, response_body['profile']) : log_error_and_return_nil(response_body['error'])
   end
-
-  # Call users.profile.get to get the bot_id of the bot.
+  
+  def cache_and_return_profile(user_id, profile)
+    @profile_cache[user_id] = { data: profile, timestamp: Time.now }
+    profile
+  end
+  
   def bot_id
-    @logger.info("Getting my own current bot ID...")
-  
-    @bot_id ||= begin
-      uri = URI("https://slack.com/api/users.profile.get")
-      request = Net::HTTP::Get.new(uri)
-  
-      request["Authorization"] = "Bearer #{@access_token}"
-      
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      response = http.request(request)
-      response_body = JSON.parse(response.body)
-      
-      if response_body['ok']
-        bot_id = response_body['profile']['bot_id']
-        @logger.info("My bot ID: #{bot_id}")
-        bot_id
-      else
-        @logger.error("Error getting bot profile: #{response_body['error']}")
-        nil
+    @bot_id ||= KeyValueStore.new.get('bot_id') do
+      fetch_bot_id.tap do |fetched_bot_id|
+        KeyValueStore.new.set('bot_id', fetched_bot_id)
       end
     end
   end
   
-  # Call bots.info to get the user_id of the bot.
+  def fetch_bot_id
+    uri = URI("https://slack.com/api/users.profile.get")
+    request = Net::HTTP::Get.new(uri)
+    request["Authorization"] = "Bearer #{@access_token}"
+    response = Net::HTTP.start(uri.host, uri.port, :use_ssl => true) { |http| http.request(request) }
+    response_body = JSON.parse(response.body)
+    response_body['ok'] ? response_body['profile']['bot_id'] : log_error_and_return_nil(response_body['error'])
+  end
+  
   def user_id
-    @logger.info("Getting my own current user ID...")
+    @user_id ||= fetch_user_id
+  end
   
-    @user_id ||= begin
-      uri = URI("https://slack.com/api/bots.info?bot=#{bot_id}")
-      request = Net::HTTP::Get.new(uri)
+  def fetch_user_id
+    uri = URI("https://slack.com/api/bots.info?bot=#{bot_id}")
+    request = Net::HTTP::Get.new(uri)
+    request["Authorization"] = "Bearer #{@access_token}"
+    response = Net::HTTP.start(uri.host, uri.port, :use_ssl => true) { |http| http.request(request) }
+    response_body = JSON.parse(response.body)
+    response_body['ok'] ? response_body['bot']['user_id'] : log_error_and_return_nil(response_body['error'])
+  end
   
-      request["Authorization"] = "Bearer #{@access_token}"
-      
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      response = http.request(request)
-      response_body = JSON.parse(response.body)
-      
-      if response_body['ok']
-        user_id = response_body['bot']['user_id']
-        @logger.info("My user ID: #{user_id}")
-        user_id
-      else
-        @logger.error("Error getting bot info: #{response_body['error']}")
-        nil
-      end
-    end
+  def log_error_and_return_nil(error)
+    @logger.error("Error: #{error}")
+    nil
   end
   
 end
