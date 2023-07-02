@@ -54,7 +54,7 @@ describe 'lambda_handler' do
     before do
       allow(sqs_client).to receive(:send_message).and_return(true)
       allow_any_instance_of(SlackEventsAPIHandler).to receive(
-          :event_needs_processing?).and_return(true)
+        :event_needs_processing?).and_return(true)
     end
 
     it 'responds with Message received' do
@@ -70,7 +70,8 @@ describe 'lambda_handler' do
     it 'enqueues message for processing' do
       expect(sqs_client).to receive(:send_message).with({
         queue_url: ENV['SQS_QUEUE_URL'],
-        message_body: event['body']
+        message_body: event['body'],
+        message_group_id: nil
       })
       api_gateway_lambda_handler(event: event, context: {})
     end

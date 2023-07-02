@@ -62,6 +62,7 @@ Resources:
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           SQS_QUEUE_URL: !Ref SlackEventsQueue
+          KEY_VALUE_STORE: !Ref KeyValueStoreDynamoDBTable
       Tracing: Active
       Events:
         EventsAPI:
@@ -89,11 +90,23 @@ Resources:
             Action:
             - sqs:SendMessage
             Resource: !GetAtt SlackEventsQueue.Arn
+          - Sid: DynamoDBCrudPolicy
+            Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:Query
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            Resource: !GetAtt KeyValueStoreDynamoDBTable.Arn
 
   SlackEventsQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: SlackEventsQueue.fifo
+      QueueName: !Sub
+        - 'ruby_slack_openai_chat_bot_events_queue_${Environment}.fifo'
+        - Environment: !Ref ENVIRONMENT
       FifoQueue: true
       ContentBasedDeduplication: true
       VisibilityTimeout: 300
@@ -114,6 +127,7 @@ Resources:
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
+          KEY_VALUE_STORE: !Ref KeyValueStoreDynamoDBTable
       Tracing: Active
       Events:
         SlackEvent:
@@ -133,6 +147,35 @@ Resources:
           - ssm:GetParameters
           - ssm:GetParameter
           Resource: '*'
+        - Sid: DynamoDBCrudPolicy
+          Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          Resource: !GetAtt KeyValueStoreDynamoDBTable.Arn
+
+  KeyValueStoreDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: key
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: !Sub
+        - 'ruby-slack-openai-chat-bot-key-value-store-${Environment}'
+        - Environment: !Ref ENVIRONMENT
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
   
 Outputs:
   SlackEventsAPIHandlerEndpointUrl:

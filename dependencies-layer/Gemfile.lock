@@ -16,6 +16,9 @@ GEM
       aws-partitions (~> 1, >= 1.651.0)
       aws-sigv4 (~> 1.5)
       jmespath (~> 1, >= 1.6.1)
+    aws-sdk-dynamodb (1.88.0)
+      aws-sdk-core (~> 3, >= 3.174.0)
+      aws-sigv4 (~> 1.1)
     aws-sdk-sqs (1.59.0)
       aws-sdk-core (~> 3, >= 3.176.0)
       aws-sigv4 (~> 1.1)
@@ -34,11 +37,15 @@ GEM
     faraday (2.7.8)
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
+    faraday-mashify (0.1.1)
+      faraday (~> 2.0)
+      hashie
     faraday-multipart (1.0.4)
       multipart-post (~> 2)
     faraday-net_http (3.0.2)
     ffi (1.15.5)
     formatador (1.1.0)
+    gli (2.21.0)
     guard (2.18.0)
       formatador (>= 0.2.4)
       listen (>= 2.7, < 4.0)
@@ -52,6 +59,7 @@ GEM
       guard
       rake
     hashdiff (1.0.1)
+    hashie (5.0.0)
     i18n (1.14.1)
       concurrent-ruby (~> 1.0)
     jmespath (1.6.2)
@@ -99,6 +107,12 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
+    slack-ruby-client (2.1.0)
+      faraday (>= 2.0)
+      faraday-mashify
+      faraday-multipart
+      gli
+      hashie
     thor (1.2.2)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
@@ -113,6 +127,7 @@ PLATFORMS
 DEPENDENCIES
   activesupport
   awesome_print
+  aws-sdk-dynamodb
   aws-sdk-sqs
   aws-sdk-ssm
   byebug
@@ -124,6 +139,7 @@ DEPENDENCIES
   rspec-mocks
   ruby-openai
   simplecov
+  slack-ruby-client
   webmock
 
 RUBY VERSION

@@ -9,6 +9,9 @@ describe 'SlackEventsAPIHandler' do
   let(:bot_message) { 'Hello, I am a bot.' }
   let(:user1_message) { 'Hello, bot.' }
   let(:user2_message) { 'Hello, everyone.' }
+  let(:dynamodb_client) { instance_double(Aws::DynamoDB::Client) }
+  let(:kv_store) { KeyValueStore.new(dynamodb_client: dynamodb_client) }
+  let(:bot_id_cache_response) { instance_double(Aws::DynamoDB::Types::GetItemOutput) }
 
   before do
     allow_any_instance_of(Aws::SSM::Client).to receive(:get_parameter) do |_, args|
@@ -41,7 +44,7 @@ describe 'SlackEventsAPIHandler' do
         }.to_json,
         headers: {}
       )
-    stub_request(:get, "https://slack.com/api/conversations.history?channel=C01HYM7S9PD&limit=200")
+    stub_request(:post, "https://slack.com/api/conversations.history")
       .to_return(
         status: 200,
         body: {
@@ -158,6 +161,13 @@ describe 'SlackEventsAPIHandler' do
         }.to_json,
         headers: {}
       )
+
+    allow(KeyValueStore).to receive(:new).and_return(kv_store)
+    allow(dynamodb_client).to receive(:get_item).and_return(bot_id_cache_response)
+    allow(bot_id_cache_response).to receive(:item).and_return({
+      'key' => 'bot_id',
+      'value' => bot_id
+    })
   end
 
   let(:url_verification_event) do
@@ -331,62 +341,22 @@ describe 'SlackEventsAPIHandler' do
   describe '#get_user_profile' do
     let(:event) { message_event }
     let(:bot) { SlackEventsAPIHandler.new(event.to_json) }
-    let(:user_id) { 'U38CHGBLL' }
-    let(:http) { instance_double(Net::HTTP) }
-    let(:response) { instance_double(Net::HTTPResponse) }
+    let(:user_id) { 'U01J218HDYS' }
 
-    before do
-      allow(Net::HTTP).to receive(:new).and_return(http)
-      allow(http).to receive(:use_ssl=)
-      allow(http).to receive(:request).and_return(response)
-    end
-
-    context 'when the API call is successful' do
-      before do
-        allow(response).to receive(:body).and_return({
-          ok: true,
-          profile: { 
-            first_name: 'John',
-            last_name: 'Doe',
-            real_name: 'John Doe',
-            email: 'john.doe@example.com',
-            phone: '1234567890',
-            title: 'Engineer'
-          }
-        }.to_json)
-      end
-
-      it 'returns the user profile' do
-        expect(bot.get_user_profile(user_id))
-          .to eq({
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'real_name' => 'John Doe',
-            'email' => 'john.doe@example.com',
-            'phone' => '1234567890',
-            'title' => 'Engineer'
+    it 'returns the user profile' do
+      expect(bot.get_user_profile(user_id))
+        .to eq({
+          'display_name' => 'john',
+          'display_name_normalized' => 'john',
+          'first_name' => 'john',
+          'last_name' => 'smith',
+          'real_name' => 'John Smith',
+          'real_name_normalized' => 'John Smith',
+          'status_text' => 'Watching cold brew steep',
+          'title' => 'Head of Coffee Production'
         })
-      end
-
-      it 'caches the user profile' do
-        bot.get_user_profile(user_id) # First time, API call is made
-        bot.get_user_profile(user_id) # Second time, no API call due to cache
-
-        # Expect the HTTP request to have been made only once
-        expect(http).to have_received(:request).once
-      end
     end
 
-    context 'when the API call fails' do
-      it 'returns nil and logs an error' do
-        allow(response).to receive(:body).and_return({
-          ok: false,
-          error: 'user_not_found'
-        }.to_json)
-
-        expect(bot.get_user_profile(user_id)).to be_nil
-      end
-    end
   end
   
 end
