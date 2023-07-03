@@ -1,0 +1,24 @@
+{
+  "Records": [
+      {
+          "messageId": "97feb8be-008c-4606-942a-9c02f02146a2",
+          "receiptHandle": "AQEB18temxMrxjzxsbcf3/wP1YJfSOCx5cMjYgCd8Li0vM/dFWmQ9pdJeYGb2KVEMYlNvTew7sMfbyf6Cz0eAPw0PH732hYIPKiLUMFlzqjxbnc+Vqn055uLRH1GtUsx3mHQzh3cgXbiNtvCsLxKIjkvySF+kA/8NehGztecYT9LsHecpk9bmWLUpL9VCRTIKzqDx9Xg5ZAFILTSSCJU6xJFZjbXK6hQ6RXaEBcCQ+CHI09t1T99YeEhXK2yzK4TBf23grMiJf6tUFS21sN5iz/XcF/0JfgEeAbt6BY9pEx3o+64fZil0oveCvhWzeIOnP6/",
+          "body": "{\"token\":\"5ebQUm9lJ6BEBDt3zsK3cxx0\",\"team_id\":\"T38A9EMB4\",\"context_team_id\":\"T38A9EMB4\",\"context_enterprise_id\":null,\"api_app_id\":\"A05FL341GBT\",\"event\":{\"client_msg_id\":\"2f1fffb3-d168-48ee-9c53-dfc477d24634\",\"type\":\"message\",\"text\":\"test\",\"user\":\"U38CHGBLL\",\"ts\":\"1688343462.095529\",\"blocks\":[{\"type\":\"rich_text\",\"block_id\":\"vdnkb\",\"elements\":[{\"type\":\"rich_text_section\",\"elements\":[{\"type\":\"text\",\"text\":\"test\"}]}]}],\"team\":\"T38A9EMB4\",\"channel\":\"D05FX6JHATS\",\"event_ts\":\"1688343462.095529\",\"channel_type\":\"im\"},\"type\":\"event_callback\",\"event_id\":\"Ev05F129U3QE\",\"event_time\":1688343462,\"authorizations\":[{\"enterprise_id\":null,\"team_id\":\"T38A9EMB4\",\"user_id\":\"U05F7F510P4\",\"is_bot\":true,\"is_enterprise_install\":false}],\"is_ext_shared_channel\":false,\"event_context\":\"4-eyJldCI6Im1lc3NhZ2UiLCJ0aWQiOiJUMzhBOUVNQjQiLCJhaWQiOiJBMDVGTDM0MUdCVCIsImNpZCI6IkQwNUZYNkpIQVRTIn0\"}",
+          "attributes": {
+              "ApproximateReceiveCount": "1",
+              "AWSTraceHeader": "Root=1-64a213a6-450f09131be34f5439d9c3a6;Parent=ad8d52bcef91d265;Sampled=1;Lineage=b817903a:0",
+              "SentTimestamp": "1688343465693",
+              "SequenceNumber": "18878960000926960384",
+              "MessageGroupId": "2f1fffb3-d168-48ee-9c53-dfc477d24634",
+              "SenderId": "AROAU2AI6I4SMT66SSNJO:slack-bot-api-gateway-handler-development",
+              "MessageDeduplicationId": "7255f8b66b4ed91d8d46d0410b4fc3b63dcf44c1e79e3f171734bbbd8d783d91",
+              "ApproximateFirstReceiveTimestamp": "1688343465693"
+          },
+          "messageAttributes": {},
+          "md5OfBody": "946e75a5bfb764b6b6f2607355f9d1a9",
+          "eventSource": "aws:sqs",
+          "eventSourceARN": "arn:aws:sqs:us-east-1:330731243300:slack-bot-events-queue-development.fifo",
+          "awsRegion": "us-east-1"
+      }
+  ]
+}

@@ -7,6 +7,7 @@ require 'active_support'
 require 'slack-ruby-client'
 require_relative 'openai_chat_bot'
 require_relative 'key_value_store'
+require_relative 'slack_conversation_history'
 
 class SlackEventsAPIHandler
   attr_reader :app_id, :user_id
@@ -14,8 +15,8 @@ class SlackEventsAPIHandler
   def initialize(slack_event)
     @logger = Logger.new(STDOUT)
     @slack_event = JSON.parse(slack_event)
-    @logger.info("Processing Slack event from SQS:\n#{slack_event.ai}")
-
+    @logger.info("Handling Slack event:\n#{slack_event.ai}")
+    
     environment =   ENV['ENVIRONMENT'] || 'development'
     @app_id =       ENV['SLACK_APP_ID']
     @access_token = ENV['SLACK_APP_ACCESS_TOKEN']
@@ -72,7 +73,7 @@ class SlackEventsAPIHandler
   end
 
   def message
-    @logger.info("Slack message event with text: \"#{message_text}\"")
+    @logger.info("Slack message event on channel #{@slack_event['event']['channel']} with text: \"#{message_text}\"")
 
     case message_subtype
     when 'message_deleted'
@@ -84,11 +85,13 @@ class SlackEventsAPIHandler
       @logger.info("Responding to message event.")
 
       @response_slack_message = send_message(
-        @slack_event['event']['channel'], ':gear: preparing context for AI model...')
+        @slack_event['event']['channel'], ':gear:')
       @logger.info("Response message: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
+
+      @logger.debug "Old-style conversation history:\n#{conversation_history.ai}"
 
       gpt = GPT.new(
         slack_events_api_handler: self
@@ -96,7 +99,7 @@ class SlackEventsAPIHandler
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
 
       update_message(
-        @slack_event['event']['channel'], ":robot_face: AI model is thinking...",
+        @slack_event['event']['channel'], ':robot_face:',
           @response_slack_message['ts'])
 
       response = gpt.get_response(chat_messages_list)
@@ -116,7 +119,7 @@ class SlackEventsAPIHandler
   end
   
   def send_message(channel, text)
-    @logger.info("Sending message to Slack: #{text}")
+    @logger.info("Sending message to Slack on channel #{channel}: \"#{text}\"")
     
     client = Slack::Web::Client.new(token: @access_token)
     
@@ -184,26 +187,15 @@ class SlackEventsAPIHandler
   end
 
   def get_conversation_history(channel_id)
-    client = Slack::Web::Client.new(token: @access_token)
-    response = client.conversations_history(channel: channel_id, limit: 200)
+    (history = SlackConversationHistory.new(
+      channel_id: @slack_event['event']['channel'])).
+        fetch_from_slack
 
-    if response['ok']
-      messages = response['messages']
-      @logger.info("Conversation history: #{messages.inspect}")
+    messages = history.get_recent_messages(100)
 
-      messages.reject{|message|
-        @response_slack_message &&
-        message['ts'].eql?(@response_slack_message['ts']) }.
-          map do |message|
-            {
-              'user_id' => message['user'],
-              'user_profile' => get_user_profile(message['user']),
-              'message' => message['text']
-            }
-          end
-    else
-      @logger.error("Error getting conversation history: #{response['error']}")
-      nil
+    messages.map do |message|
+      message.merge(
+        'user_profile' => get_user_profile(message['user']))
     end
   end
 

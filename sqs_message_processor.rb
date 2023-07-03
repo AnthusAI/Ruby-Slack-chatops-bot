@@ -5,7 +5,7 @@ require_relative 'lib/slack_events_api'
 
 def sqs_message_processor_lambda_handler(event:, context:)
   logger = Logger.new(STDOUT)
-  logger.info("Received event from Lambda:\n#{event.ai}")
+  logger.info("Received event from Lambda:\n#{JSON.pretty_generate(event)}")
 
   event['Records'].each do |record|
     logger.info("Processing SQS message: #{record.ai}")

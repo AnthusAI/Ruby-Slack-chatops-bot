@@ -1,6 +1,7 @@
 require 'logger'
 require 'aws-sdk-ssm'
 require 'openai'
+require_relative 'openai_token_estimator'
 
 class GPT
 
@@ -8,12 +9,12 @@ class GPT
     gpt3: {
       name: 'gpt-3.5-turbo-16k-0613',
       max_tokens: 16384,
-      slack_messages_to_retrieve: 200
+      # slack_messages_to_retrieve: 200
     },
     gpt4: {
       name: 'gpt-4-0613',
       max_tokens: 8192,
-      slack_messages_to_retrieve: 100
+      # slack_messages_to_retrieve: 100
     }
   }
 
@@ -32,24 +33,23 @@ class GPT
   # Convert the conversation history list of hashes that came from the Slack API
   # into a list of messages that can be passed to the OpenAI API.
   def build_chat_messages_list(conversation_history)
+
     # First, trim it to the maximum number of messages that we have set up
     # for the current model.  We use this as a rough estimate without doing
     # the slower work of counting tokens.
-    conversation_history =
-      (conversation_history || []).slice(0, slack_messages_to_retrieve)
+    # conversation_history =
+    #   (conversation_history || []).slice(0, slack_messages_to_retrieve)
 
+    # It's too expensive to send the entire conversation history to the
+    # OpenAI API, so we trim it down until it's a reasonable size.
     until (
-      estimate_tokens(
-        conversation_history.map{ |message| message['message'] }.join(' ')
-      ) < model_max_tokens / 4 # 4k of history for a 16k model.
-      # It's too expensive to send the entire conversation history to the
-      # OpenAI API, so we trim it down until it's a reasonable size.
-    )
+      (conversation_history.sum{|message|
+        message['estimatedOpenAiTokenCount'].to_i }) <
+          (model_max_tokens / 4) # 4k of history for a 16k model.
+    ) do
       # If the conversation history is too long, remove the oldest message
       # and try again.
       @logger.info "Trimming conversation history."
-      @logger.debug "First three items in conversation history: #{conversation_history[0..2].ai}"
-      @logger.debug "Last three items in conversation history: #{conversation_history[-3..-1].ai}"
       conversation_history =
         conversation_history.slice(0, conversation_history.length - 1)
     end
@@ -60,7 +60,8 @@ class GPT
       # Add a system prompt to the beginning of the conversation history.
       {
         role: "system",
-        content: File.read(File.join(__dir__, '..', 'bot', 'system_prompt.txt'))
+        content: File.read(
+          File.join(__dir__, '..', 'bot', 'default_system_prompt.txt'))
       }
     ] +
       conversation_history.
@@ -79,46 +80,6 @@ class GPT
           @logger.info "Messages list: #{messages_list.ai}"
         end
 
-  end
-
-  def estimate_tokens(text, method = 'max')
-    # method can be "average", "words", "chars", "max", "min", defaults to "max"
-    # "average" is the average of words and chars
-    # "words" is the word count divided by 0.75
-    # "chars" is the char count divided by 4
-    # "max" is the max of word and char
-    # "min" is the min of word and char
-
-    word_count = text.split(' ').count
-    char_count = text.length
-    tokens_count_word_est = word_count.to_f / 0.75
-    tokens_count_char_est = char_count.to_f / 4.0
-
-    # Include additional tokens for spaces and punctuation marks
-    additional_tokens = text.scan(/[\s.,!?;]/).length
-
-    tokens_count_word_est += additional_tokens
-    tokens_count_char_est += additional_tokens
-
-    output = 0
-    if method == 'average'
-      output = (tokens_count_word_est + tokens_count_char_est) / 2
-    elsif method == 'words'
-      output = tokens_count_word_est
-    elsif method == 'chars'
-      output = tokens_count_char_est
-    elsif method == 'max'
-      output = [tokens_count_word_est, tokens_count_char_est].max
-    elsif method == 'min'
-      output = [tokens_count_word_est, tokens_count_char_est].min
-    else
-      # return invalid method message
-      return "Invalid method. Use 'average', 'words', 'chars', 'max', or 'min'."
-    end
-
-    output.to_i.tap do |output|
-      @logger.info "Estimated tokens: #{output}"
-    end
   end
 
   def get_response(conversation_history)

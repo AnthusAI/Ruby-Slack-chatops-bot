@@ -57,11 +57,16 @@ Replace the profile with your correct AWS profile, and provide the correct stack
 #### Development
 
     $ sam sync --profile=767678462952_AdministratorAccess --region us-east-1
+
 ### View logs
 
     $ sam logs -t --profile=330731243300_AdministratorAccess --region=us-east-1 --stack-name=ruby-slack-openai-chat-bot-development
 
 ## Development
+
+### Local invocation
+
+    $ sam build && sam local invoke SlackEventsAPIHandlerHandlerFunction --event=events/slack_events_api_test_message.json --env-vars=env.json --profile=AdministratorAccess-330731243300
 
 ### Testing
 

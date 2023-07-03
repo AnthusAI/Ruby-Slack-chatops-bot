@@ -9,6 +9,7 @@ gem "ruby-openai"
 gem "awesome_print"
 gem "activesupport"
 gem "slack-ruby-client"
+gem "pry"
 
 group :test do
   gem "rake"
