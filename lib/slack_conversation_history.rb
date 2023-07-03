@@ -9,11 +9,23 @@ class SlackConversationHistory
     @dynamodb = Aws::DynamoDB::Client.new
     @table_name = ENV['SLACK_CONVERSATION_HISTORY_TABLE']
 
-    @access_token = ENV['SLACK_APP_ACCESS_TOKEN']
+    environment =         ENV['ENVIRONMENT'] || 'development'
+    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
+
+    # Get the Slack app access token from AWS Secrets Manager.
+    # (CloudFormation cannot create SSM SecureString parameters.)
+
+    secretsmanager_client = Aws::SecretsManager::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
+    
+    secret_name = "#{aws_resource_prefix}-slack-app-access-token-#{environment}"
+    @slack_access_token = secretsmanager_client.get_secret_value(
+      secret_id: secret_name
+    ).secret_string
+    @logger.info "Slack app access token: #{@slack_access_token}"
   end
 
   def fetch_from_slack
-    client = Slack::Web::Client.new(token: @access_token)
+    client = Slack::Web::Client.new(token: @slack_access_token)
     response = client.conversations_history(channel: @channel_id, limit: 200)
 
     if response['ok']

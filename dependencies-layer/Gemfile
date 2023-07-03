@@ -3,6 +3,7 @@ source "https://rubygems.org"
 ruby '~> 2.7.0'
 
 gem "aws-sdk-ssm"
+gem "aws-sdk-secretsmanager"
 gem "aws-sdk-sqs"
 gem "aws-sdk-dynamodb"
 gem "ruby-openai"

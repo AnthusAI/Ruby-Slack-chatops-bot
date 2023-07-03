@@ -2,6 +2,7 @@ require 'logger'
 require 'net/http'
 require 'uri'
 require 'aws-sdk-ssm'
+require 'aws-sdk-secretsmanager'
 require 'awesome_print'
 require 'active_support'
 require 'slack-ruby-client'
@@ -17,9 +18,20 @@ class SlackEventsAPIHandler
     @slack_event = JSON.parse(slack_event)
     @logger.info("Handling Slack event:\n#{slack_event.ai}")
     
-    environment =   ENV['ENVIRONMENT'] || 'development'
-    @app_id =       ENV['SLACK_APP_ID']
-    @access_token = ENV['SLACK_APP_ACCESS_TOKEN']
+    environment =         ENV['ENVIRONMENT'] || 'development'
+    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
+    @app_id =             ENV['SLACK_APP_ID']
+
+    # Get the Slack app access token from AWS Secrets Manager.
+    # (CloudFormation cannot create SSM SecureString parameters.)
+
+    secretsmanager_client = Aws::SecretsManager::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
+    
+    secret_name = "#{aws_resource_prefix}-slack-app-access-token-#{environment}"
+    @slack_access_token = secretsmanager_client.get_secret_value(
+      secret_id: secret_name
+    ).secret_string
+    @logger.info "Slack app access token: #{@slack_access_token}"
   end
 
   def event_type
@@ -121,7 +133,7 @@ class SlackEventsAPIHandler
   def send_message(channel, text)
     @logger.info("Sending message to Slack on channel #{channel}: \"#{text}\"")
     
-    client = Slack::Web::Client.new(token: @access_token)
+    client = Slack::Web::Client.new(token: @slack_access_token)
     
     client.chat_postMessage(channel: channel, text: text).tap do |response|
       @logger.info("Sent message to Slack: #{response.inspect}")
@@ -132,7 +144,7 @@ class SlackEventsAPIHandler
     @logger.info(
       "Updating existing message from timestamp #{ts} in Slack: #{text}")
   
-    client = Slack::Web::Client.new(token: @access_token)
+    client = Slack::Web::Client.new(token: @slack_access_token)
   
     client.chat_update(
       channel: channel,
@@ -165,8 +177,8 @@ class SlackEventsAPIHandler
   end
 
   def event_is_from_me?
-    event_is_from_me = event_app_id == @app_id
-    @logger.info("is \"#{event_app_id}\" the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
+    event_is_from_me = (!event_app_id.blank?) and (event_app_id == @app_id)
+    @logger.info("is \"#{event_app_id}\" not blank and also the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
     event_is_from_me
   end
 
@@ -201,7 +213,7 @@ class SlackEventsAPIHandler
 
   def get_user_profile(user_id)
     KeyValueStore.new.get(key:"user_profiles/#{user_id}") do
-      Slack::Web::Client.new(token: @access_token).
+      Slack::Web::Client.new(token: @slack_access_token).
         users_profile_get(user: user_id)['profile']
     end
   end
@@ -209,7 +221,7 @@ class SlackEventsAPIHandler
   def bot_id
     @bot_id ||= KeyValueStore.new.get(key:'bot_id') do
       profile_info =
-        Slack::Web::Client.new(token: @access_token).users_profile_get
+        Slack::Web::Client.new(token: @slack_access_token).users_profile_get
       profile_info['ok'] ? profile_info['profile']['bot_id'] : log_error_and_return_nil(profile_info['error'])
     end
   end
@@ -217,7 +229,7 @@ class SlackEventsAPIHandler
   def user_id
     @user_id ||= KeyValueStore.new.get(key:'user_id') do
       bot_info = 
-        Slack::Web::Client.new(token: @access_token).bots_info(bot: bot_id)
+        Slack::Web::Client.new(token: @slack_access_token).bots_info(bot: bot_id)
       bot_info['ok'] ?
         bot_info['bot']['user_id'] :
         log_error_and_return_nil(bot_info['error'])

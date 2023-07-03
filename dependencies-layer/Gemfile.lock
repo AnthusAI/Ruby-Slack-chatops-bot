@@ -19,6 +19,9 @@ GEM
     aws-sdk-dynamodb (1.88.0)
       aws-sdk-core (~> 3, >= 3.174.0)
       aws-sigv4 (~> 1.1)
+    aws-sdk-secretsmanager (1.78.0)
+      aws-sdk-core (~> 3, >= 3.176.0)
+      aws-sigv4 (~> 1.1)
     aws-sdk-sqs (1.59.0)
       aws-sdk-core (~> 3, >= 3.176.0)
       aws-sigv4 (~> 1.1)
@@ -128,6 +131,7 @@ DEPENDENCIES
   activesupport
   awesome_print
   aws-sdk-dynamodb
+  aws-sdk-secretsmanager
   aws-sdk-sqs
   aws-sdk-ssm
   byebug

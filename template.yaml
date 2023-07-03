@@ -44,6 +44,34 @@ Resources:
     Metadata:
       BuildMethod: ruby2.7
 
+  OpenAiApiTokenSecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: !Sub
+        - '${Prefix}-openai-api-token-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+      SecretString: !Ref OpenAiApiToken
+  
+  SlackAppAccessTokenSecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties: 
+      Name: !Sub
+        - '${Prefix}-slack-app-access-token-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+      SecretString: !Ref SlackAppAccessToken
+
+  SystemPromptSSMParameter:
+    Type: 'AWS::SSM::Parameter'
+    Properties: 
+      Name: !Sub
+        - '${Prefix}-system-prompt-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+      Type: String
+      Value: ' '
+
   APIGateway:
     Type: AWS::Serverless::Api
     Properties:
@@ -74,21 +102,19 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
+          AWS_RESOURCE_PREFIX: !Ref AwsResourcePrefix
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           SQS_QUEUE_URL: !Ref SlackEventsQueue
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
-          SLACK_APP_ID: !Ref SlackAppId
-          SLACK_APP_ACCESS_TOKEN: !Ref SlackAppAccessToken
-          OPEN_AI_API_TOKEN: !Ref OpenAiApiToken
       Tracing: Active
       Events:
         EventsAPI:
           Type: Api 
           Properties:
             RestApiId: 
-                !Ref APIGateway
+              !Ref APIGateway
             Path: /events
             Method: post
       Policies:
@@ -108,6 +134,29 @@ Resources:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
             Resource: !GetAtt KeyValueStoreDynamoDBTable.Arn
+          - Sid: SSMGetParameterPolicy
+            Effect: Allow
+            Action:
+            - ssm:GetParameter
+            - ssm:PutParameter
+            Resource:
+            - !Sub
+              - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Prefix}-system-prompt-${Environment}'
+              - Prefix: !Ref AwsResourcePrefix
+                Environment: !Ref Environment
+          - Sid: SecretsManagerGetSecretValuePolicy
+            Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource: 
+              - !Sub
+                - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-openai-api-token-${Environment}-*'
+                - Prefix: !Ref AwsResourcePrefix
+                  Environment: !Ref Environment
+              - !Sub
+                - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-slack-app-access-token-${Environment}-*'
+                - Prefix: !Ref AwsResourcePrefix
+                  Environment: !Ref Environment
 
   SlackEventsQueue:
     Type: AWS::SQS::Queue
@@ -137,14 +186,12 @@ Resources:
       Environment: 
         Variables:
           ENVIRONMENT: !Ref Environment
+          AWS_RESOURCE_PREFIX: !Ref AwsResourcePrefix
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
           SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
-          SLACK_APP_ID: !Ref SlackAppId
-          SLACK_APP_ACCESS_TOKEN: !Ref SlackAppAccessToken
-          OPEN_AI_API_TOKEN: !Ref OpenAiApiToken
       Tracing: Active
       Events:
         SlackEvent:
@@ -165,10 +212,33 @@ Resources:
           Resource: 
           - !GetAtt KeyValueStoreDynamoDBTable.Arn
           - !GetAtt SlackConversationHistoryTable.Arn
+        - Sid: SSMGetParameterPolicy
+          Effect: Allow
+          Action:
+          - ssm:GetParameter
+          - ssm:PutParameter
+          Resource: 
+          - !Sub
+            - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Prefix}-system-prompt-${Environment}'
+            - Prefix: !Ref AwsResourcePrefix
+              Environment: !Ref Environment
+        - Sid: SecretsManagerGetSecretValuePolicy
+          Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: 
+            - !Sub
+              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-openai-api-token-${Environment}-*'
+              - Prefix: !Ref AwsResourcePrefix
+                Environment: !Ref Environment
+            - !Sub
+              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-slack-app-access-token-${Environment}-*'
+              - Prefix: !Ref AwsResourcePrefix
+                Environment: !Ref Environment
 
   KeyValueStoreDynamoDBTable:
     Type: AWS::DynamoDB::Table
-    Properties:
+    Properties: 
       TableName: !Sub
         - '${Prefix}-key-value-store-${Environment}'
         - Prefix: !Ref AwsResourcePrefix
@@ -179,16 +249,13 @@ Resources:
       KeySchema:
         - AttributeName: key
           KeyType: HASH
-      ProvisionedThroughput:
+      ProvisionedThroughput: 
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-      TimeToLiveSpecification:
-        AttributeName: ttl
-        Enabled: true
 
   SlackConversationHistoryTable:
     Type: AWS::DynamoDB::Table
-    Properties:
+    Properties: 
       TableName: !Sub
         - '${Prefix}-slack-conversation-history-${Environment}'
         - Prefix: !Ref AwsResourcePrefix
@@ -203,11 +270,11 @@ Resources:
           KeyType: HASH
         - AttributeName: ts
           KeyType: RANGE
-      ProvisionedThroughput:
+      ProvisionedThroughput: 
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-  
+
 Outputs:
-  SlackEventsAPIHandlerEndpointUrl:
-    Description: "API Gateway endpoint URL for Prod stage for Slack Events API handler function."
-    Value: !Sub "https://${APIGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/events/"
+  ApiGatewayApiEndpoint:
+    Description: 'API Gateway API endpoint URL for Prod stage for Slack events'
+    Value: !Sub 'https://${APIGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/events'

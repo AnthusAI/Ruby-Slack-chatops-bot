@@ -1,0 +1,39 @@
+display_information:
+  name: Bot
+  description: OpenAI-powered Slack bot.
+  background_color: "#ff00ff"
+  long_description: I will only respond if you address me.  Ask me something and I'll relay your question and the recent conversation history to the OpenAI ChatGPT API.  You can address me privately through direct messages and I'll respond to every question.
+features:
+  bot_user:
+    display_name: Bot
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - groups:history
+      - groups:read
+      - im:history
+      - mpim:history
+      - mpim:read
+      - chat:write
+      - chat:write.customize
+      - im:read
+      - incoming-webhook
+      - users.profile:read
+      - users:read
+settings:
+  event_subscriptions:
+    request_url: https://example.execute-api.us-east-1.amazonaws.com/Prod/events/
+    bot_events:
+      - app_mention
+      - member_joined_channel
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

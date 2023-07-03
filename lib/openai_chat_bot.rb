@@ -1,5 +1,7 @@
 require 'logger'
 require 'aws-sdk-ssm'
+require 'aws-sdk-secretsmanager'
+require 'active_support'
 require 'openai'
 require_relative 'openai_token_estimator'
 
@@ -21,9 +23,46 @@ class GPT
   def initialize(slack_events_api_handler:)
     @logger = Logger.new(STDOUT)
     @slack_events_api_handler = slack_events_api_handler
+
+    environment =         ENV['ENVIRONMENT'] || 'development'
+    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
+
+    ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
+
+    param_name = "#{aws_resource_prefix}-system-prompt-#{environment}"
+    begin
+      @system_prompt = ssm_client.get_parameter(
+        name: param_name
+      ).parameter.value
+      @logger.info "System prompt from SSM: \"#{@system_prompt}\""
     
-    environment =           ENV['ENVIRONMENT'] || 'development'
-    @open_ai_access_token = ENV['OPEN_AI_API_TOKEN']
+      # If the parameter is not found, set the SSM value from the file and use it as system prompt
+      if @system_prompt.blank?
+        @logger.info "System prompt in SSM is blank. Setting default."
+        default_prompt = File.read(
+          File.join(__dir__, '..', 'default_openai_system_prompt.txt'))
+        ssm_client.put_parameter({
+          name: param_name,
+          value: default_prompt,
+          type: "String",
+          overwrite: true
+        })
+        @system_prompt = default_prompt
+      end
+      
+      @logger.info "System prompt:\n\n#{@system_prompt.gsub(/^/m,'  ')}"
+    end
+
+    # Get the OpenAI API access token from AWS Secrets Manager.
+    # (CloudFormation cannot create SSM SecureString parameters.)
+
+    secretsmanager_client = Aws::SecretsManager::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
+    
+    secret_name = "#{aws_resource_prefix}-openai-api-token-#{environment}"
+    @open_ai_access_token = secretsmanager_client.get_secret_value(
+      secret_id: secret_name
+    ).secret_string
+    @logger.info "OpenAI access token: #{@open_ai_access_token}"
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
     @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt4
@@ -60,8 +99,7 @@ class GPT
       # Add a system prompt to the beginning of the conversation history.
       {
         role: "system",
-        content: File.read(
-          File.join(__dir__, '..', 'bot', 'default_system_prompt.txt'))
+        content: @system_prompt
       }
     ] +
       conversation_history.
