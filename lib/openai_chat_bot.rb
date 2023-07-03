@@ -22,6 +22,7 @@ class GPT
 
   def initialize(slack_events_api_handler:)
     @logger = Logger.new(STDOUT)
+    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @slack_events_api_handler = slack_events_api_handler
 
     environment =         ENV['ENVIRONMENT'] || 'development'
@@ -115,7 +116,7 @@ class GPT
             { role: "user", content: message['message'] }
           end
         end.tap do |messages_list|
-          @logger.info "Messages list: #{messages_list.ai}"
+          @logger.debug "Messages list: #{messages_list.ai}"
         end
 
   end

@@ -6,6 +6,7 @@ class SlackConversationHistory
   def initialize(channel_id:)
     @channel_id = channel_id
     @logger = Logger.new(STDOUT)
+    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @dynamodb = Aws::DynamoDB::Client.new
     @table_name = ENV['SLACK_CONVERSATION_HISTORY_TABLE']
 

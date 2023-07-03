@@ -15,6 +15,7 @@ class SlackEventsAPIHandler
 
   def initialize(slack_event)
     @logger = Logger.new(STDOUT)
+    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @slack_event = JSON.parse(slack_event)
     @logger.info("Handling Slack event:\n#{slack_event.ai}")
     
@@ -56,8 +57,6 @@ class SlackEventsAPIHandler
   end
 
   def handle_event_callback
-    @logger.debug("Handling event callback: #{@slack_event.ai}")
-
     case @slack_event['event']['type']
     when 'message'
       message unless message_subtype.eql? 'message_changed'
@@ -103,7 +102,7 @@ class SlackEventsAPIHandler
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
 
-      @logger.debug "Old-style conversation history:\n#{conversation_history.ai}"
+      @logger.debug "Conversation history:\n#{conversation_history.ai}"
 
       gpt = GPT.new(
         slack_events_api_handler: self
