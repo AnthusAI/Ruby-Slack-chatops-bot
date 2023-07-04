@@ -97,7 +97,7 @@ class SlackEventsAPIHandler
 
       @response_slack_message = send_message(
         @slack_event['event']['channel'], ':gear:')
-      @logger.info("Response message: #{@response_slack_message.ai}")
+      @logger.info("Posted status response to Slack: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
@@ -113,7 +113,7 @@ class SlackEventsAPIHandler
         @slack_event['event']['channel'], ':robot_face:',
           @response_slack_message['ts'])
 
-      response = gpt.get_response(chat_messages_list)
+      response = gpt.get_response(conversation_history:chat_messages_list)
     
       update_message(
         @slack_event['event']['channel'], response,

@@ -10,13 +10,11 @@ class GPT
   @@open_ai_models = {
     gpt3: {
       name: 'gpt-3.5-turbo-16k-0613',
-      max_tokens: 16384,
-      # slack_messages_to_retrieve: 200
+      max_tokens: 16384
     },
     gpt4: {
       name: 'gpt-4-0613',
-      max_tokens: 8192,
-      # slack_messages_to_retrieve: 100
+      max_tokens: 8192
     }
   }
 
@@ -85,7 +83,7 @@ class GPT
     until (
       (conversation_history.sum{|message|
         message['estimatedOpenAiTokenCount'].to_i }) <
-          (model_max_tokens / 4) # 4k of history for a 16k model.
+          (model_max_tokens / 8)
     ) do
       # If the conversation history is too long, remove the oldest message
       # and try again.
@@ -121,18 +119,83 @@ class GPT
 
   end
 
-  def get_response(conversation_history)
+  def functions
+    [
+      {
+        'name': 'get_bot_status',
+        'description': "Monitor this bot's status by checking relevant storage values, metrics and alarms for the OpenAI model's integration with Slack.",
+        'parameters': {
+          'type': 'object',
+          'properties': {
+          }
+        }
+      },
+      {
+        'name': 'get_sales_performance',
+        'description': "Monitor the system's recent revenue, transaction count, and other key performance indicators for the sales system.",
+        'parameters': {
+          'type': 'object',
+          'properties': {
+          }
+        }
+      }
+      
+    ]
+  end
+
+  def get_response(
+    conversation_history:, function_call:nil)
+
+    @logger.info "Getting response to conversation history ending with:\n#{conversation_history.last.ai}"
+
+    # Call the function if it's a function call.
+    function_name = nil
+    function_response =
+      if function_call.present?
+        @logger.info "Getting response to function call: #{function_call.ai}"
+        function_name = function_call['name']
+        case function_name
+        when 'get_bot_status'
+          {
+            "status": "OKAY",
+            "alarms": [
+              { 'critical-something-alarm': 'OKAY' },
+              { 'somet-other-alarm': 'OKAY' }
+            ]
+          }
+        when 'get_sales_performance'
+          {
+            "revenue": "$1,000,000 USD",
+            "transactions": 1000,
+            "conversion_rate": "10%"
+          }
+        else
+          "Unknown function call: #{function_call}"
+        end
+      end
 
     # Send the conversation history to the OpenAI API.
-    def api_response conversation_history
+    def api_response(conversation_history:,
+      function_response:nil, function_name:nil)
+      if function_response.present?
+        conversation_history << {
+          'role': 'function',
+          'name': function_name,
+          'content': function_response.to_json,
+        }
+        @logger.info "Conversation history (last 3) with function response:\n#{conversation_history.last(3).ai}"
+      end
+
       @open_ai_client.chat(
         parameters: {
             # Get the model from the class instance.
             model: model_name,
             messages: conversation_history,
+            functions: functions,
+            function_call: "auto",
             temperature: 0.7,
         }).tap do |response|
-          @logger.info "OpenAI Response: #{response.ai}"        
+          @logger.info "OpenAI chat API response: #{response.ai}"        
         end
     end
 
@@ -152,14 +215,18 @@ class GPT
 
     response = 
       loop do
-        # Abort if wehave tried too many times.
+        # Abort if we have tried too many times.
         loop_tries += 1
-        break({ 'error' => { 'code' => 'too_many_tries' } }) if loop_tries > 10
+        break({ 'error' => { 'code' => 'too_many_tries' } }) if loop_tries > 3
 
         # Loop until the response is not a context-length error.
-        response = api_response(conversation_history)
+        response = api_response(
+          conversation_history: conversation_history,
+          function_response:    function_response,
+          function_name:        function_name
+        )
         break(response) unless response['error']
-        @logger.info 'Error from OpenAI API.'
+        @logger.info "Error from OpenAI API. Retrying...\n#{response.ai}"
 
         case response['error']['code']
 
@@ -169,16 +236,30 @@ class GPT
           sleep 1
           conversation_history.shift  
 
-        # For generale errors of "type" => "server_error" or anything else,
+        # For general errors of "type" => "server_error" or anything else,
         # try again.
         else
           sleep 1
         end
 
       end
-    
-    response.dig("choices", 0, "message", "content").tap do |response|
-      @logger.info "OpenAI Response: #{response}"
+
+      # If it's a function call then we need to handle that differently.
+      response_message = response.dig("choices", 0, "message")
+      @logger.info "OpenAI response message:\n#{response_message.ai}"
+
+      if response_message['function_call'].present?
+        @logger.info "Recursing to get a response to the function call: #{response_message['function_call']}"
+
+        # Recurse to get the response to the function call.
+        get_response(
+          conversation_history: conversation_history,
+          function_call: response_message['function_call']
+        )
+      else
+        response_message['content'].tap do |response|
+          @logger.info "OpenAI response message content: #{response}"
+      end
     end
   end
 
