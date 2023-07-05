@@ -1,3 +1,4 @@
+require 'aws-sdk-cloudwatch'
 class GetBotMonitoringInformation < Function
 
   def name
@@ -18,12 +19,23 @@ class GetBotMonitoringInformation < Function
   def execute(parameters)
     puts "Getting bot monitoring information..."
     {
-      "status": 'OKAY',
-      'summary': 'All systems are nominal.',
-      "alarms": [
-        { 'critical-something-alarm': 'OKAY' },
-        { 'some-other-alarm-1': 'OKAY' },
-        { 'some-other-alarm-2': 'OKAY' }
+      "metrics": [
+        {
+          'Slack Messages Received':
+            get_metric_average_over_time(ENV['SLACK_MESSAGES_RECEIVED_METRIC'])
+        },
+        {
+          'Slack Messages Sent':
+            get_metric_average_over_time(ENV['SLACK_MESSAGES_SENT_METRIC'])
+        },  
+        {
+          'Open AI Chat API Responses':
+            get_metric_average_over_time(ENV['OPEN_AI_CHAT_API_METRIC'])
+        },
+        {
+          'Function Responses':
+            get_metric_average_over_time(ENV['FUNCTION_RESPONSES_METRIC'])
+        }
       ]
     }
   end

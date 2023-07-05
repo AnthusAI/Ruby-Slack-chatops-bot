@@ -66,7 +66,7 @@ class GPT
     @logger.debug "OpenAI access token: #{@open_ai_access_token}"
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt4
+    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3
     @logger.debug "OpenAI model: #{model_name}"
   end
   
@@ -161,6 +161,8 @@ class GPT
             function_call: "auto",
             temperature: 0.7,
         }).tap do |response|
+          # This is monitored by a log filter metric,
+          # so don't change this string unless you know what you're doing.
           @logger.info "OpenAI chat API response: #{response.ai}"        
         end
     end

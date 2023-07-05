@@ -61,7 +61,7 @@ class SlackEventsAPIHandler
     when 'message'
       message unless message_subtype.eql? 'message_changed'
     when 'app_mention'
-      app_mention
+      event_text
     else
       # Handle other event types if necessary
     end
@@ -124,9 +124,8 @@ class SlackEventsAPIHandler
     
   end
 
-  def app_mention
+  def event_text
     message_text = @slack_event['event']['text']
-    @logger.info("Slack message event with text: \"#{message_text}\"")
   end
   
   def send_message(channel, text)

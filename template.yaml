@@ -8,6 +8,10 @@ Parameters:
     Description: 'Name of runtime environment: development, test, staging, production'
     Type: 'String'
     Default: 'development'
+  AwsResourceName:
+    Description: 'A title-cased name of the bot service.'
+    Type: 'String'
+    Default: 'Slack Bot'
   AwsResourcePrefix:
     Description: 'The name prefix for resources related to the app.'
     Type: 'String'
@@ -192,6 +196,22 @@ Resources:
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
           SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
+          SLACK_MESSAGES_RECEIVED_METRIC: !Sub
+            - "${Namespace}::Slack Messages Received - ${Environment}"
+            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+              Environment: !Ref Environment
+          SLACK_MESSAGES_SENT_METRIC: !Sub
+            - "${Namespace}::Slack Messages Sent - ${Environment}"
+            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+              Environment: !Ref Environment
+          OPEN_AI_CHAT_API_METRIC: !Sub
+            - "${Namespace}::Open AI Chat API Responses - ${Environment}"
+            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+              Environment: !Ref Environment
+          FUNCTION_RESPONSES_METRIC: !Sub
+            - "${Namespace}::Function Responses - ${Environment}"
+            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+              Environment: !Ref Environment
       Tracing: Active
       Events:
         SlackEvent:
@@ -235,6 +255,11 @@ Resources:
               - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-slack-app-access-token-${Environment}-*'
               - Prefix: !Ref AwsResourcePrefix
                 Environment: !Ref Environment
+        - Sid: CloudWatchGetMetricStatisticsProperty
+          Effect: Allow
+          Action:
+            - cloudwatch:GetMetricStatistics
+          Resource: "*"
 
   KeyValueStoreDynamoDBTable:
     Type: AWS::DynamoDB::Table
@@ -273,6 +298,102 @@ Resources:
       ProvisionedThroughput: 
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+
+  SlackMessagesReceivedMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
+      FilterPattern: "Slack message event"
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+          MetricName: !Sub
+            - "Slack Messages Received - ${Environment}"
+            - Environment: !Ref Environment
+
+  SlackMessagesSentMetricFilter:
+      Type: AWS::Logs::MetricFilter
+      Properties:
+        LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
+        FilterPattern: "Sent message to Slack"
+        MetricTransformations:
+          - MetricValue: "1"
+            MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+            MetricName: !Sub
+              - "Slack Messages Sent - ${Environment}"
+              - Environment: !Ref Environment
+
+  OpenAiChatMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
+      FilterPattern: "OpenAI chat API response"
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+          MetricName: !Sub
+            - "Open AI Chat API Responses - ${Environment}"
+            - Environment: !Ref Environment
+  
+  FunctionResponsesMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
+      FilterPattern: "Function response"
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+          MetricName: !Sub
+            - "Function Responses - ${Environment}"
+            - Environment: !Ref Environment
+
+  BotDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub
+        - "${Name}-${Environment}"
+        - Name: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
+          Environment: !Ref Environment
+      DashboardBody: !Sub
+        - |
+            {
+              "widgets": [
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 0,
+                  "width": 24,
+                  "height": 6,
+                  "properties": {
+                    "metrics": [
+                      [
+                        "${Namespace}", 
+                        "Slack Messages Received - ${Environment}"
+                      ],
+                      [
+                        "${Namespace}", 
+                        "Slack Messages Sent - ${Environment}"
+                      ],
+                      [
+                        "${Namespace}", 
+                        "Open AI Chat API Responses - ${Environment}"
+                      ],
+                      [
+                        "${Namespace}", 
+                        "Function Responses - ${Environment}"
+                      ]
+                    ],
+                    "view": "timeSeries",
+                    "stacked": false,
+                    "region": "${AWS::Region}",
+                    "period": 300,
+                    "title": "Activity",
+                    "stat": "Sum"
+                  }
+                }
+              ]
+            }
+        - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
 
 Outputs:
   ApiGatewayApiEndpoint:
