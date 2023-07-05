@@ -4,7 +4,7 @@ require 'aws-sdk-secretsmanager'
 require 'active_support'
 require 'openai'
 require_relative 'openai_token_estimator'
-
+require_relative 'function'
 class GPT
 
   @@open_ai_models = {
@@ -23,6 +23,8 @@ class GPT
     @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @slack_events_api_handler = slack_events_api_handler
 
+    @function = Function.load
+
     environment =         ENV['ENVIRONMENT'] || 'development'
     aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
 
@@ -33,7 +35,7 @@ class GPT
       @system_prompt = ssm_client.get_parameter(
         name: param_name
       ).parameter.value
-      @logger.info "System prompt from SSM: \"#{@system_prompt}\""
+      @logger.debug "System prompt from SSM: \"#{@system_prompt}\""
     
       # If the parameter is not found, set the SSM value from the file and use it as system prompt
       if @system_prompt.blank?
@@ -49,7 +51,7 @@ class GPT
         @system_prompt = default_prompt
       end
       
-      @logger.info "System prompt:\n\n#{@system_prompt.gsub(/^/m,'  ')}"
+      @logger.debug "System prompt:\n\n#{@system_prompt.gsub(/^/m,'  ')}"
     end
 
     # Get the OpenAI API access token from AWS Secrets Manager.
@@ -61,11 +63,11 @@ class GPT
     @open_ai_access_token = secretsmanager_client.get_secret_value(
       secret_id: secret_name
     ).secret_string
-    @logger.info "OpenAI access token: #{@open_ai_access_token}"
+    @logger.debug "OpenAI access token: #{@open_ai_access_token}"
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
     @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt4
-    @logger.info "OpenAI model: #{model_name}"
+    @logger.debug "OpenAI model: #{model_name}"
   end
   
   # Convert the conversation history list of hashes that came from the Slack API
@@ -119,34 +121,10 @@ class GPT
 
   end
 
-  def functions
-    [
-      {
-        'name': 'get_bot_status',
-        'description': "Monitor this bot's status by checking relevant storage values, metrics and alarms for the OpenAI model's integration with Slack.",
-        'parameters': {
-          'type': 'object',
-          'properties': {
-          }
-        }
-      },
-      {
-        'name': 'get_sales_performance',
-        'description': "Monitor the system's recent revenue, transaction count, and other key performance indicators for the sales system.",
-        'parameters': {
-          'type': 'object',
-          'properties': {
-          }
-        }
-      }
-      
-    ]
-  end
-
   def get_response(
     conversation_history:, function_call:nil)
 
-    @logger.info "Getting response to conversation history ending with:\n#{conversation_history.last.ai}"
+    @logger.info "Getting response to conversation history ending with (last 3):\n#{conversation_history.last(3).ai}"
 
     # Call the function if it's a function call.
     function_name = nil
@@ -154,23 +132,11 @@ class GPT
       if function_call.present?
         @logger.info "Getting response to function call: #{function_call.ai}"
         function_name = function_call['name']
-        case function_name
-        when 'get_bot_status'
-          {
-            "status": "OKAY",
-            "alarms": [
-              { 'critical-something-alarm': 'OKAY' },
-              { 'somet-other-alarm': 'OKAY' }
-            ]
-          }
-        when 'get_sales_performance'
-          {
-            "revenue": "$1,000,000 USD",
-            "transactions": 1000,
-            "conversion_rate": "10%"
-          }
-        else
-          "Unknown function call: #{function_call}"
+        function = @function.instances.
+          select{|f| f.name == function_name}.first
+        @logger.info "Calling function: #{function.ai}"
+        function.execute(function_call['parameters']).tap do |response|
+          @logger.info "Function response: #{response.ai}"
         end
       end
 
@@ -191,7 +157,7 @@ class GPT
             # Get the model from the class instance.
             model: model_name,
             messages: conversation_history,
-            functions: functions,
+            functions: @function.definitions,
             function_call: "auto",
             temperature: 0.7,
         }).tap do |response|
@@ -226,13 +192,13 @@ class GPT
           function_name:        function_name
         )
         break(response) unless response['error']
-        @logger.info "Error from OpenAI API. Retrying...\n#{response.ai}"
+        @logger.error "Error from OpenAI API. Retrying...\n#{response.ai}"
 
         case response['error']['code']
 
         # If the context length is exceeded, try again with a shorter context.
         when 'context_length_exceeded'
-          @logger.info 'Context length exceeded. Retrying...'
+          @logger.warn 'Context length exceeded. Retrying...'
           sleep 1
           conversation_history.shift  
 

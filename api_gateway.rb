@@ -6,7 +6,8 @@ require_relative 'lib/slack_events_api'
 
 def api_gateway_lambda_handler(event:, context:)
   logger = Logger.new(STDOUT)
-  logger.info("Received Slack API event from API Gateway:\n#{event.ai}")
+  logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
+  logger.debug("Received Slack API event from API Gateway:\n#{event.ai}")
 
   # We need to examine the Slack message to see if it's a URL verification
   # request or a message event.  The Slack event is passed as a JSON string

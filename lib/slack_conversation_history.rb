@@ -22,7 +22,7 @@ class SlackConversationHistory
     @slack_access_token = secretsmanager_client.get_secret_value(
       secret_id: secret_name
     ).secret_string
-    @logger.info "Slack app access token: #{@slack_access_token}"
+    @logger.debug "Slack app access token: #{@slack_access_token}"
   end
 
   def fetch_from_slack

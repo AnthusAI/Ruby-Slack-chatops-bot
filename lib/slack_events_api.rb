@@ -17,7 +17,7 @@ class SlackEventsAPIHandler
     @logger = Logger.new(STDOUT)
     @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @slack_event = JSON.parse(slack_event)
-    @logger.info("Handling Slack event:\n#{slack_event.ai}")
+    @logger.debug("Handling Slack event:\n#{slack_event.ai}")
     
     environment =         ENV['ENVIRONMENT'] || 'development'
     aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
@@ -32,7 +32,7 @@ class SlackEventsAPIHandler
     @slack_access_token = secretsmanager_client.get_secret_value(
       secret_id: secret_name
     ).secret_string
-    @logger.info "Slack app access token: #{@slack_access_token}"
+    @logger.debug "Slack app access token: #{@slack_access_token}"
   end
 
   def event_type
@@ -40,7 +40,7 @@ class SlackEventsAPIHandler
   end
 
   def dispatch
-    @logger.warn("Dispatching event of type: #{event_type}")
+    @logger.debug("Dispatching event of type: #{event_type}")
 
     case event_type
     when 'url_verification'
@@ -130,12 +130,12 @@ class SlackEventsAPIHandler
   end
   
   def send_message(channel, text)
-    @logger.info("Sending message to Slack on channel #{channel}: \"#{text}\"")
+    @logger.debug("Sending message to Slack on channel #{channel}: \"#{text}\"")
     
     client = Slack::Web::Client.new(token: @slack_access_token)
     
     client.chat_postMessage(channel: channel, text: text).tap do |response|
-      @logger.info("Sent message to Slack: #{response.inspect}")
+      @logger.info("Sent message to Slack on channel #{channel}: #{response.inspect}")
     end
   end
 
@@ -160,7 +160,7 @@ class SlackEventsAPIHandler
       return false
     end
     message_text_mentions_me = message_text.include?(user_id || '')
-    @logger.info("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
+    @logger.debug("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
     message_text_mentions_me
   end
 
@@ -177,14 +177,14 @@ class SlackEventsAPIHandler
 
   def event_is_from_me?
     event_is_from_me = (!event_app_id.blank?) and (event_app_id == @app_id)
-    @logger.info("is \"#{event_app_id}\" not blank and also the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
+    @logger.debug("is \"#{event_app_id}\" not blank and also the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
     event_is_from_me
   end
 
   def event_is_direct_message?
     channel_type = @slack_event['event']['channel_type']
     event_is_direct_message = channel_type == 'im'
-    @logger.info("is \"#{channel_type}\" the type of this channel, \"im\"?  #{event_is_direct_message ? 'Yes!' : 'No.'}")
+    @logger.debug("is \"#{channel_type}\" the type of this channel, \"im\"?  #{event_is_direct_message ? 'Yes!' : 'No.'}")
     event_is_direct_message
   end
 
@@ -192,7 +192,7 @@ class SlackEventsAPIHandler
     (( event_mentions_me? or
       event_is_direct_message? ) and
         not event_is_from_me?).tap do |does_event_need_processing|
-          @logger.info('Does this event need processing? ' +
+          @logger.debug('Does this event need processing? ' +
             (does_event_need_processing ? 'Yes!' : 'No.'))
         end
   end
