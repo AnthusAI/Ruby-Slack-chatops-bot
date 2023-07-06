@@ -9,6 +9,7 @@ require 'slack-ruby-client'
 require_relative 'openai_chat_bot'
 require_relative 'key_value_store'
 require_relative 'slack_conversation_history'
+require_relative 'cloudwatch_metrics'
 
 class SlackEventsAPIHandler
   attr_reader :app_id, :user_id
@@ -18,6 +19,7 @@ class SlackEventsAPIHandler
     @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @slack_event = JSON.parse(slack_event)
     @logger.debug("Handling Slack event:\n#{slack_event.ai}")
+    @cloudwatch_metrics = CloudWatchMetrics.new
     
     environment =         ENV['ENVIRONMENT'] || 'development'
     aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
@@ -86,6 +88,12 @@ class SlackEventsAPIHandler
   def message
     @logger.info("Slack message event on channel #{@slack_event['event']['channel']} with text: \"#{message_text}\"")
 
+    @cloudwatch_metrics.send_metric_reading(
+      metric_name: "Slack Messages Received",
+      value: 1,
+      unit: 'Count'
+    )
+
     case message_subtype
     when 'message_deleted'
       @logger.info("Ignoring message_deleted event.")
@@ -135,6 +143,11 @@ class SlackEventsAPIHandler
     
     client.chat_postMessage(channel: channel, text: text).tap do |response|
       @logger.info("Sent message to Slack on channel #{channel}: #{response.inspect}")
+      @cloudwatch_metrics.send_metric_reading(
+        metric_name: "Slack Messages Sent",
+        value: 1,
+        unit: 'Count'
+      )
     end
   end
 

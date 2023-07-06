@@ -106,6 +106,7 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
+          AWS_RESOURCE_NAME: !Ref AwsResourceName
           AWS_RESOURCE_PREFIX: !Ref AwsResourcePrefix
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
@@ -190,28 +191,13 @@ Resources:
       Environment: 
         Variables:
           ENVIRONMENT: !Ref Environment
+          AWS_RESOURCE_NAME: !Ref AwsResourceName
           AWS_RESOURCE_PREFIX: !Ref AwsResourcePrefix
           RUBYLIB: /opt/ruby/lib
           BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
           SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
-          SLACK_MESSAGES_RECEIVED_METRIC: !Sub
-            - "${Namespace}::Slack Messages Received - ${Environment}"
-            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-              Environment: !Ref Environment
-          SLACK_MESSAGES_SENT_METRIC: !Sub
-            - "${Namespace}::Slack Messages Sent - ${Environment}"
-            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-              Environment: !Ref Environment
-          OPEN_AI_CHAT_API_METRIC: !Sub
-            - "${Namespace}::Open AI Chat API Responses - ${Environment}"
-            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-              Environment: !Ref Environment
-          FUNCTION_RESPONSES_METRIC: !Sub
-            - "${Namespace}::Function Responses - ${Environment}"
-            - Namespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-              Environment: !Ref Environment
       Tracing: Active
       Events:
         SlackEvent:
@@ -260,6 +246,11 @@ Resources:
           Action:
             - cloudwatch:GetMetricStatistics
           Resource: "*"
+        - Sid: CloudWatchPutMetricDataProperty
+          Effect: Allow
+          Action:
+            - cloudwatch:PutMetricData
+          Resource: "*"
 
   KeyValueStoreDynamoDBTable:
     Type: AWS::DynamoDB::Table
@@ -299,54 +290,6 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
 
-  SlackMessagesReceivedMetricFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
-      FilterPattern: "Slack message event"
-      MetricTransformations:
-        - MetricValue: "1"
-          MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-          MetricName: !Sub
-            - "Slack Messages Received - ${Environment}"
-            - Environment: !Ref Environment
-
-  SlackMessagesSentMetricFilter:
-      Type: AWS::Logs::MetricFilter
-      Properties:
-        LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
-        FilterPattern: "Sent message to Slack"
-        MetricTransformations:
-          - MetricValue: "1"
-            MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-            MetricName: !Sub
-              - "Slack Messages Sent - ${Environment}"
-              - Environment: !Ref Environment
-
-  OpenAiChatMetricFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
-      FilterPattern: "OpenAI chat API response"
-      MetricTransformations:
-        - MetricValue: "1"
-          MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-          MetricName: !Sub
-            - "Open AI Chat API Responses - ${Environment}"
-            - Environment: !Ref Environment
-  
-  FunctionResponsesMetricFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}'
-      FilterPattern: "Function response"
-      MetricTransformations:
-        - MetricValue: "1"
-          MetricNamespace: !Join [ '', !Split [ ' ', !Ref AwsResourceName ] ]
-          MetricName: !Sub
-            - "Function Responses - ${Environment}"
-            - Environment: !Ref Environment
-
   BotDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
@@ -365,30 +308,141 @@ Resources:
                   "width": 24,
                   "height": 6,
                   "properties": {
+                    "title": "Activity",
                     "metrics": [
                       [
-                        "${Namespace}", 
-                        "Slack Messages Received - ${Environment}"
+                        "${Namespace}",
+                        "Slack Messages Received",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Slack Messages Received / minute"
+                        }
                       ],
                       [
-                        "${Namespace}", 
-                        "Slack Messages Sent - ${Environment}"
+                        "${Namespace}",
+                        "Slack Messages Sent",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Slack Messages Sent / minute"
+                        }
                       ],
                       [
-                        "${Namespace}", 
-                        "Open AI Chat API Responses - ${Environment}"
+                        "${Namespace}",
+                        "Open AI Chat API Responses",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Open AI Chat API Responses / minute"
+                        }
                       ],
                       [
-                        "${Namespace}", 
-                        "Function Responses - ${Environment}"
+                        "${Namespace}",
+                        "Function Responses",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Function Responses / minute"
+                        }
                       ]
                     ],
                     "view": "timeSeries",
                     "stacked": false,
                     "region": "${AWS::Region}",
                     "period": 300,
-                    "title": "Activity",
-                    "stat": "Sum"
+                    "stat": "Sum",
+                    "liveData": true,
+                    "yAxis": {
+                        "left": {
+                            "label": "count per minute",
+                            "showUnits": false
+                        },
+                        "right": {
+                            "showUnits": true
+                        }
+                    }
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 6,
+                  "width": 24,
+                  "height": 6,
+                  "properties": {
+                    "title": "OpenAI Token Usage",
+                    "metrics": [
+                      [
+                        "${Namespace}",
+                        "OpenAI Total Token Usage",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Total Tokens"
+                        }
+                      ],
+                      [
+                        "${Namespace}",
+                        "OpenAI Prompt Token Usage",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Prompt Tokens"
+                        }
+                      ],
+                      [
+                        "${Namespace}",
+                        "OpenAI Completion Token Usage",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Completion Tokens"
+                        }
+                      ]
+                    ],
+                    "view": "timeSeries",
+                    "stacked": false,
+                    "region": "${AWS::Region}",
+                    "period": 300,
+                    "stat": "Sum",
+                    "liveData": true,
+                    "yAxis": {
+                        "left": {
+                            "label": "count per minute",
+                            "showUnits": false
+                        },
+                        "right": {
+                            "showUnits": true
+                        }
+                    }
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 12,
+                  "width": 24,
+                  "height": 6,
+                  "properties": {
+                    "metrics": [
+                        [
+                          "${Namespace}",
+                          "OpenAI Total Token Usage",
+                          "Environment", "${Environment}",
+                          { "region": "${AWS::Region}" }
+                        ],
+                        [
+                          ".",
+                          "OpenAI Prompt Token Usage",
+                          ".", ".",
+                          { "region": "${AWS::Region}" }
+                          ],
+                        [
+                          ".",
+                          "OpenAI Completion Token Usage",
+                          ".", ".",
+                          { "region": "${AWS::Region}" }
+                        ]
+                    ],
+                    "view": "bar",
+                    "region": "${AWS::Region}",
+                    "stat": "Sum",
+                    "period": 86400,
+                    "title": "OpenAI Token Usage Breakdown"
                   }
                 }
               ]

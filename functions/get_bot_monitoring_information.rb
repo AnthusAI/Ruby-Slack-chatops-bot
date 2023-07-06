@@ -1,4 +1,5 @@
 require 'aws-sdk-cloudwatch'
+require_relative '../lib/cloudwatch_metrics'
 class GetBotMonitoringInformation < Function
 
   def name
@@ -17,24 +18,30 @@ class GetBotMonitoringInformation < Function
   end
 
   def execute(parameters)
+    cloudwatch_metrics = CloudWatchMetrics.new
+
     puts "Getting bot monitoring information..."
     {
       "metrics": [
         {
-          'Slack Messages Received':
-            get_metric_average_over_time(ENV['SLACK_MESSAGES_RECEIVED_METRIC'])
+          'Average Slack Messages Received per minute in the last hour':
+            cloudwatch_metrics.get_metric_average_over_time(
+              metric_name: 'Slack Messages Received')
         },
         {
-          'Slack Messages Sent':
-            get_metric_average_over_time(ENV['SLACK_MESSAGES_SENT_METRIC'])
+          'Average Slack Messages Sent per minute in the last hour':
+          cloudwatch_metrics.get_metric_average_over_time(
+              metric_name: 'Slack Messages Sent')
         },  
         {
-          'Open AI Chat API Responses':
-            get_metric_average_over_time(ENV['OPEN_AI_CHAT_API_METRIC'])
+          'Average Open AI Chat API Responses per minute in the last hour':
+          cloudwatch_metrics.get_metric_average_over_time(
+              metric_name: 'Open AI Chat API Responses')
         },
         {
-          'Function Responses':
-            get_metric_average_over_time(ENV['FUNCTION_RESPONSES_METRIC'])
+          'Average Function Responses per minute in the last hour':
+          cloudwatch_metrics.get_metric_average_over_time(
+              metric_name: 'Function Responses')
         }
       ]
     }

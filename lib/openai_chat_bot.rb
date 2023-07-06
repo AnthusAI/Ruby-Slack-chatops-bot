@@ -5,6 +5,7 @@ require 'active_support'
 require 'openai'
 require_relative 'openai_token_estimator'
 require_relative 'function'
+require_relative 'cloudwatch_metrics'
 class GPT
 
   @@open_ai_models = {
@@ -22,6 +23,7 @@ class GPT
     @logger = Logger.new(STDOUT)
     @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @slack_events_api_handler = slack_events_api_handler
+    @cloudwatch_metrics = CloudWatchMetrics.new
 
     @function = Function.load
 
@@ -137,6 +139,11 @@ class GPT
         @logger.info "Calling function: #{function.ai}"
         function.execute(function_call['parameters']).tap do |response|
           @logger.info "Function response: #{response.ai}"
+          @cloudwatch_metrics.send_metric_reading(
+            metric_name: "Function Responses",
+            value: 1,
+            unit: 'Count'
+          )
         end
       end
 
@@ -163,7 +170,30 @@ class GPT
         }).tap do |response|
           # This is monitored by a log filter metric,
           # so don't change this string unless you know what you're doing.
-          @logger.info "OpenAI chat API response: #{response.ai}"        
+          @logger.info "OpenAI chat API response: #{response.ai}"
+          @cloudwatch_metrics.send_metric_reading(
+            metric_name: "Open AI Chat API Responses",
+            value: 1,
+            unit: 'Count'
+          )
+
+          if response['usage'].present?
+            @cloudwatch_metrics.send_metric_reading(
+              metric_name: "OpenAI Prompt Token Usage",
+              value: response['usage']['prompt_tokens'],
+              unit: 'Count'
+            )
+            @cloudwatch_metrics.send_metric_reading(
+              metric_name: "OpenAI Completion Token Usage",
+              value: response['usage']['completion_tokens'],
+              unit: 'Count'
+            )
+            @cloudwatch_metrics.send_metric_reading(
+              metric_name: "OpenAI Total Token Usage",
+              value: response['usage']['total_tokens'],
+              unit: 'Count'
+            )
+          end
         end
     end
 
@@ -241,6 +271,6 @@ class GPT
 
   def slack_messages_to_retrieve
     @@open_ai_models[@open_ai_model][:slack_messages_to_retrieve]
-  end
+  end  
 
 end
