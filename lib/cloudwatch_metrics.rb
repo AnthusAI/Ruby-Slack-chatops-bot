@@ -32,10 +32,10 @@ class CloudWatchMetrics
     })
   end
 
-  def get_metric_average_over_time(metric_name:, time_window: 3600)
+  def get_metric_sum_over_time(metric_name:, time_window: 3600)
     @logger.info "Getting average of metric #{metric_name} over the last #{time_window} seconds."
   
-    resp = @cloudwatch.get_metric_statistics({
+    response = @cloudwatch.get_metric_statistics({
       # The namespace of the metric, in this case, the value before "::"
       namespace: @namespace,
       dimensions: [
@@ -55,12 +55,8 @@ class CloudWatchMetrics
       # The metric statistics.
       statistics: ["Sum"],
     })
-  
-    # Compute the average of the sums
-    datapoints = resp.datapoints
-    total = datapoints.map(&:sum).sum
-    count = datapoints.size
-    count.zero? ? nil : total / count
+
+    response.datapoints.map(&:sum).sum
   end
 
 end

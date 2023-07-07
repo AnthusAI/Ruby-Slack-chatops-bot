@@ -315,7 +315,7 @@ Resources:
                         "Slack Messages Received",
                         "Environment", "${Environment}",
                         {
-                          "label": "Slack Messages Received / minute"
+                          "label": "Slack Messages Received"
                         }
                       ],
                       [
@@ -323,7 +323,7 @@ Resources:
                         "Slack Messages Sent",
                         "Environment", "${Environment}",
                         {
-                          "label": "Slack Messages Sent / minute"
+                          "label": "Slack Messages Sent"
                         }
                       ],
                       [
@@ -331,7 +331,7 @@ Resources:
                         "Open AI Chat API Responses",
                         "Environment", "${Environment}",
                         {
-                          "label": "Open AI Chat API Responses / minute"
+                          "label": "Open AI Chat API Responses"
                         }
                       ],
                       [
@@ -339,7 +339,7 @@ Resources:
                         "Function Responses",
                         "Environment", "${Environment}",
                         {
-                          "label": "Function Responses / minute"
+                          "label": "Function Responses"
                         }
                       ]
                     ],
@@ -414,35 +414,140 @@ Resources:
                 {
                   "type": "metric",
                   "x": 0,
-                  "y": 12,
+                  "y": 6,
+                  "width": 24,
+                  "height": 6,
+                  "properties": {
+                    "title": "OpenAI Token Cost",
+                    "metrics": [
+                      [
+                        "${Namespace}",
+                        "OpenAI Total Token Cost",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "OpenAI Total Token Cost"
+                        }
+                      ],
+                      [
+                        "${Namespace}",
+                        "OpenAI Input Token Cost",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "OpenAI Input Token Cost"
+                        }
+                      ],
+                      [
+                        "${Namespace}",
+                        "OpenAI Output Token Cost",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "OpenAI Output Token Cost"
+                        }
+                      ]
+                    ],
+                    "view": "timeSeries",
+                    "stacked": false,
+                    "region": "${AWS::Region}",
+                    "period": 300,
+                    "stat": "Sum",
+                    "liveData": true,
+                    "yAxis": {
+                        "left": {
+                            "label": "dollars per minute",
+                            "showUnits": false
+                        },
+                        "right": {
+                            "showUnits": true
+                        }
+                    }
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 15,
                   "width": 24,
                   "height": 6,
                   "properties": {
                     "metrics": [
-                        [
-                          "${Namespace}",
-                          "OpenAI Total Token Usage",
-                          "Environment", "${Environment}",
-                          { "region": "${AWS::Region}" }
-                        ],
-                        [
-                          ".",
-                          "OpenAI Prompt Token Usage",
-                          ".", ".",
-                          { "region": "${AWS::Region}" }
-                          ],
-                        [
-                          ".",
-                          "OpenAI Completion Token Usage",
-                          ".", ".",
-                          { "region": "${AWS::Region}" }
-                        ]
+                      [
+                        "${Namespace}",
+                        "OpenAI Total Token Usage",
+                        "Environment", "${Environment}",
+                        { "label": "OpenAI Total Token Usage" }
+                      ],
+                      [
+                        ".",
+                        "OpenAI Prompt Token Usage",
+                        ".", ".",
+                        { "label": "OpenAI Prompt Token Usage" }
+                      ],
+                      [
+                        ".",
+                        "OpenAI Completion Token Usage",
+                        ".", ".",
+                        { "label": "OpenAI Completion Token Usage" }
+                      ]
                     ],
                     "view": "bar",
                     "region": "${AWS::Region}",
                     "stat": "Sum",
                     "period": 86400,
-                    "title": "OpenAI Token Usage Breakdown"
+                    "title": "OpenAI Token Usage Breakdown, Previous 24 Hours",
+                    "liveData": true,
+                    "yAxis": {
+                        "left": {
+                            "label": "$",
+                            "showUnits": false
+                        },
+                        "right": {
+                            "showUnits": true
+                        }
+                    }
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 18,
+                  "width": 24,
+                  "height": 6,
+                  "properties": {
+                    "metrics": [
+                      [
+                        "${Namespace}",
+                        "OpenAI Total Token Cost",
+                        "Environment", "${Environment}",
+                        { "label": "OpenAI Total Token Cost" }
+                      ],
+                      [
+                        ".",
+                        "OpenAI Input Token Cost",
+                        ".", ".",
+                        { "label": "OpenAI Input Token Cost" }
+                        ],
+                      [
+                        ".",
+                        "OpenAI Output Token Cost",
+                        ".", ".",
+                        { "label": "OpenAI Output Token Cost" }
+                      ]
+                    ],
+                    "view": "bar",
+                    "region": "${AWS::Region}",
+                    "stat": "Sum",
+                    "period": 86400,
+                    "title": "OpenAI Token Cost Breakdown, Previous 24 Hours",
+                    "liveData": true,
+                    "yAxis": {
+                        "left": {
+                            "label": "$",
+                            "showUnits": false
+                        },
+                        "right": {
+                            "showUnits": true
+                        }
+                    }
                   }
                 }
               ]

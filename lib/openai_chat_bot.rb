@@ -1,4 +1,5 @@
 require 'logger'
+require 'bigdecimal'
 require 'aws-sdk-ssm'
 require 'aws-sdk-secretsmanager'
 require 'active_support'
@@ -10,12 +11,22 @@ class GPT
 
   @@open_ai_models = {
     gpt3: {
+      name: 'gpt-3.5-turbo-0613',
+      max_tokens: 4096,
+      input_token_cost:  BigDecimal('0.0015') / BigDecimal('1000'),
+      output_token_cost: BigDecimal('0.002') / BigDecimal('1000')
+    },
+    gpt3_16k: {
       name: 'gpt-3.5-turbo-16k-0613',
-      max_tokens: 16384
+      max_tokens: 16384,
+      input_token_cost:  BigDecimal('0.003') / BigDecimal('1000'),
+      output_token_cost: BigDecimal('0.004') / BigDecimal('1000')
     },
     gpt4: {
       name: 'gpt-4-0613',
-      max_tokens: 8192
+      max_tokens: 8192,
+      input_token_cost:  BigDecimal('0.03') / BigDecimal('1000'),
+      output_token_cost: BigDecimal('0.06') / BigDecimal('1000')
     }
   }
 
@@ -168,8 +179,6 @@ class GPT
             function_call: "auto",
             temperature: 0.7,
         }).tap do |response|
-          # This is monitored by a log filter metric,
-          # so don't change this string unless you know what you're doing.
           @logger.info "OpenAI chat API response: #{response.ai}"
           @cloudwatch_metrics.send_metric_reading(
             metric_name: "Open AI Chat API Responses",
@@ -193,6 +202,14 @@ class GPT
               value: response['usage']['total_tokens'],
               unit: 'Count'
             )
+
+            # Compute the cost of those tokens.
+            log_openai_call_cost(
+              input_tokens_used:  response['usage']['prompt_tokens'],
+              output_tokens_used: response['usage']['completion_tokens'],
+              openai_model: @open_ai_model
+            )
+
           end
         end
     end
@@ -271,6 +288,33 @@ class GPT
 
   def slack_messages_to_retrieve
     @@open_ai_models[@open_ai_model][:slack_messages_to_retrieve]
-  end  
+  end
 
+  # Compute the cost of an OpenAI call in dollars, based on the number of
+  # input and output tokens used.
+  def log_openai_call_cost(
+    input_tokens_used:, output_tokens_used:, openai_model:)
+    
+    @cloudwatch_metrics.send_metric_reading(
+      metric_name: "OpenAI Input Token Cost",
+      value: input_token_cost =
+        BigDecimal(input_tokens_used) *
+          @@open_ai_models[openai_model][:input_token_cost],
+      unit: 'Count'
+    )
+    
+    @cloudwatch_metrics.send_metric_reading(
+      metric_name: "OpenAI Output Token Cost",
+      value: output_token_cost =
+        BigDecimal(input_tokens_used) *
+          @@open_ai_models[openai_model][:output_token_cost],
+      unit: 'Count'
+    )
+
+    @cloudwatch_metrics.send_metric_reading(
+      metric_name: "OpenAI Total Token Cost",
+      value: input_token_cost + output_token_cost,
+      unit: 'Count'
+    )
+  end
 end
