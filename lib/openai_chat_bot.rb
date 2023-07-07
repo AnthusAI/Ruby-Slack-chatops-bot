@@ -82,7 +82,7 @@ class GPT
     @logger.debug "OpenAI access token: #{@open_ai_access_token}"
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3
+    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3_16k
     @logger.debug "OpenAI model: #{model_name}"
   end
   
@@ -132,7 +132,7 @@ class GPT
             { role: "user", content: message['message'] }
           end
         end.tap do |messages_list|
-          @logger.debug "Messages list: #{messages_list.ai}"
+          @logger.info "Messages list: #{messages_list.ai}"
         end
 
   end
