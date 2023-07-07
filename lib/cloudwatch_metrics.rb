@@ -12,18 +12,17 @@ class CloudWatchMetrics
     @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
   end
 
-  def send_metric_reading(value:, metric_name:, unit:'None')  
+  def send_metric_reading(value:, metric_name:, unit:'None', dimensions: [])
     @cloudwatch.put_metric_data({
       namespace: @namespace,
       metric_data: [
         {
           metric_name: metric_name,
-          dimensions: [
-            {
-              name: 'Environment',
-              value: ENV['ENVIRONMENT'],
-            },
-          ],
+          dimensions: dimensions <<
+          {
+            name: 'Environment',
+            value: ENV['ENVIRONMENT'],
+          },
           timestamp: Time.now,
           value: value.to_f,
           unit: unit

@@ -140,7 +140,7 @@ class GPT
   def get_response(
     conversation_history:, function_call:nil)
 
-    @logger.info "Getting response to conversation history ending with (last 3):\n#{conversation_history.last(3).ai}"
+    @logger.info "Getting response to conversation history ending with (last 10):\n#{conversation_history.last(10).ai}"
 
     # Call the function if it's a function call.
     function_name = nil
@@ -186,6 +186,19 @@ class GPT
             temperature: 0.7,
         }).tap do |response|
           @logger.info "OpenAI chat API response: #{response.ai}"
+          # Record the activity on a per-model basis.
+          @cloudwatch_metrics.send_metric_reading(
+            metric_name: "Open AI Chat API Responses",
+            dimensions: [
+              name: 'Model',
+              value: @@open_ai_models[@open_ai_model][:name]
+            ],
+            value: 1,
+            unit: 'Count'
+          )
+          # CloudWatch isn't great at aggregating metrics across dimensions,
+          # so we also record the activity across all models.
+          # (The same data as above, but without a "Model" dimension.)
           @cloudwatch_metrics.send_metric_reading(
             metric_name: "Open AI Chat API Responses",
             value: 1,
