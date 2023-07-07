@@ -328,6 +328,14 @@ Resources:
                       ],
                       [
                         "${Namespace}",
+                        "Slack Messages Updated",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Slack Messages Updated"
+                        }
+                      ],
+                      [
+                        "${Namespace}",
                         "Open AI Chat API Responses",
                         "Environment", "${Environment}",
                         {

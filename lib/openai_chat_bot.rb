@@ -30,11 +30,14 @@ class GPT
     }
   }
 
-  def initialize(slack_events_api_handler:)
+  def initialize(slack_events_api_handler:, response_channel:)
     @logger = Logger.new(STDOUT)
     @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
-    @slack_events_api_handler = slack_events_api_handler
+
     @cloudwatch_metrics = CloudWatchMetrics.new
+
+    @slack_events_api_handler = slack_events_api_handler
+    @response_channel = response_channel
 
     @function = Function.load
 
@@ -144,6 +147,9 @@ class GPT
     function_response =
       if function_call.present?
         @logger.info "Getting response to function call: #{function_call.ai}"
+        @response_channel.update_message(
+          text: ':wrench:')
+
         function_name = function_call['name']
         function = @function.instances.
           select{|f| f.name == function_name}.first

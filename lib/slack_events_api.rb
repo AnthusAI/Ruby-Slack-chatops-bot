@@ -10,6 +10,7 @@ require_relative 'openai_chat_bot'
 require_relative 'key_value_store'
 require_relative 'slack_conversation_history'
 require_relative 'cloudwatch_metrics'
+require_relative 'response_channel'
 
 class SlackEventsAPIHandler
   attr_reader :app_id, :user_id
@@ -103,8 +104,11 @@ class SlackEventsAPIHandler
     if event_needs_processing?
       @logger.info("Responding to message event.")
 
-      @response_slack_message = send_message(
-        @slack_event['event']['channel'], ':gear:')
+      @response_channel = ResponseChannel.new(
+        slack_access_token: @slack_access_token,
+        channel: @slack_event['event']['channel'])
+
+      @response_slack_message = @response_channel.send_message(text:':gear:')
       @logger.info("Posted status response to Slack: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
@@ -113,19 +117,18 @@ class SlackEventsAPIHandler
       @logger.debug "Conversation history:\n#{conversation_history.ai}"
 
       gpt = GPT.new(
-        slack_events_api_handler: self
+        slack_events_api_handler: self,
+        response_channel: @response_channel
       )
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
 
-      update_message(
-        @slack_event['event']['channel'], ':robot_face:',
-          @response_slack_message['ts'])
+      @response_channel.update_message(
+        text: ':robot_face:')
 
       response = gpt.get_response(conversation_history:chat_messages_list)
     
-      update_message(
-        @slack_event['event']['channel'], response,
-          @response_slack_message['ts'])
+      @response_channel.update_message(
+        text: response)
     else
       @logger.info("Not responding to message event.")
     end
@@ -134,36 +137,6 @@ class SlackEventsAPIHandler
 
   def event_text
     message_text = @slack_event['event']['text']
-  end
-  
-  def send_message(channel, text)
-    @logger.debug("Sending message to Slack on channel #{channel}: \"#{text}\"")
-    
-    client = Slack::Web::Client.new(token: @slack_access_token)
-    
-    client.chat_postMessage(channel: channel, text: text).tap do |response|
-      @logger.info("Sent message to Slack on channel #{channel}: #{response.inspect}")
-      @cloudwatch_metrics.send_metric_reading(
-        metric_name: "Slack Messages Sent",
-        value: 1,
-        unit: 'Count'
-      )
-    end
-  end
-
-  def update_message(channel, text, ts)
-    @logger.info(
-      "Updating existing message from timestamp #{ts} in Slack: #{text}")
-  
-    client = Slack::Web::Client.new(token: @slack_access_token)
-  
-    client.chat_update(
-      channel: channel,
-      text: text,
-      ts: ts # Timestamp of the message to update
-    ).tap do |response|
-      @logger.info("Updated message in Slack: #{response.inspect}")
-    end
   end
 
   def event_mentions_me?

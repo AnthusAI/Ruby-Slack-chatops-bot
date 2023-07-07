@@ -37,6 +37,11 @@ class GetBotMonitoringInformation < Function
               metric_name: 'Slack Messages Sent')
         },  
         {
+          'Number of Slack Messages Updated in the last hour':
+          cloudwatch_metrics.get_metric_sum_over_time(
+              metric_name: 'Slack Messages Updated')
+        },  
+        {
           'Number of Open AI Chat API Responses in the last hour':
           cloudwatch_metrics.get_metric_sum_over_time(
               metric_name: 'Open AI Chat API Responses')
