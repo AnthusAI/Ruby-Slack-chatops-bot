@@ -82,7 +82,7 @@ class GPT
     @logger.debug "OpenAI access token: #{@open_ai_access_token}"
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3_16k
+    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3
     @logger.debug "OpenAI model: #{model_name}"
   end
   
@@ -101,7 +101,7 @@ class GPT
     until (
       (conversation_history.sum{|message|
         message['estimatedOpenAiTokenCount'].to_i }) <
-          (model_max_tokens / 8)
+          (model_max_tokens / 2) # Half the max tokens
     ) do
       # If the conversation history is too long, remove the oldest message
       # and try again.
