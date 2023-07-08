@@ -10,7 +10,7 @@ class KeyValueStore
   end
 
   def set(key:, value:, ttl: (Time.now + 3600).to_i)  # TTL defaults to 1 hour
-    @logger.debug("Setting key: #{key} => #{value}, TTL: #{ttl}")
+    @logger.info("Setting key: #{key} => #{value}, TTL: #{ttl}")
     begin
       @dynamodb.put_item({
         table_name: @table_name,
@@ -26,7 +26,7 @@ class KeyValueStore
   end
   
   def get(key:, &block)
-    @logger.debug("Getting key: #{key}")
+    @logger.info("Getting key: #{key}")
     begin
       result = @dynamodb.get_item({
         table_name: @table_name,
@@ -50,6 +50,8 @@ class KeyValueStore
     rescue Aws::DynamoDB::Errors::ServiceError => e
       @logger.error "Unable to get item:\n#{e.message}"
       nil
+    end.tap do |value|
+      @logger.info("Returning value: #{value}")
     end
   end
 

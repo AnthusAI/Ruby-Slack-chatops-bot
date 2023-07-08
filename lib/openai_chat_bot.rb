@@ -1,3 +1,4 @@
+require 'json'
 require 'logger'
 require 'bigdecimal'
 require 'aws-sdk-ssm'
@@ -7,23 +8,23 @@ require 'openai'
 require_relative 'openai_token_estimator'
 require_relative 'function'
 require_relative 'cloudwatch_metrics'
+require_relative 'configuration_settings'
+
 class GPT
 
   @@open_ai_models = {
-    gpt3: {
-      name: 'gpt-3.5-turbo-0613',
+    'gpt-3.5-turbo-0613' => {
       max_tokens: 4096,
       input_token_cost:  BigDecimal('0.0015') / BigDecimal('1000'),
       output_token_cost: BigDecimal('0.002') / BigDecimal('1000')
     },
-    gpt3_16k: {
+    'gpt-3.5-turbo-16k-0613' => {
       name: 'gpt-3.5-turbo-16k-0613',
       max_tokens: 16384,
       input_token_cost:  BigDecimal('0.003') / BigDecimal('1000'),
       output_token_cost: BigDecimal('0.004') / BigDecimal('1000')
     },
-    gpt4: {
-      name: 'gpt-4-0613',
+    'gpt-4-0613' => {
       max_tokens: 8192,
       input_token_cost:  BigDecimal('0.03') / BigDecimal('1000'),
       output_token_cost: BigDecimal('0.06') / BigDecimal('1000')
@@ -82,8 +83,18 @@ class GPT
     @logger.debug "OpenAI access token: #{@open_ai_access_token}"
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3_16k
-    @logger.debug "OpenAI model: #{model_name}"
+
+    @logger.debug "OpenAI model: #{open_ai_model_name}"
+  end
+
+  def open_ai_model_name
+    ENV['OPEN_AI_MODEL'] ||
+      Configuration::Model.get
+  end
+
+  def temperature
+    ENV['TEMPERATURE'] ||
+      Configuration::Temperature.get
   end
   
   # Convert the conversation history list of hashes that came from the Slack API
@@ -112,13 +123,14 @@ class GPT
 
     # This array represents the conversation history that will be passed to
     # the OpenAI API.
+    messages_list =
     (
       [
         # Add a system prompt to the beginning of the conversation history.
         {
           # GPT 3.5 is not good at paying attention to the system prompt,
           # and OpenAI recommends that we use the user prompt instead.
-          role: (@open_ai_model.to_s =~ /gpt3/) ? 'user' : 'system',
+          role: (open_ai_model_name =~ /gpt3/) ? 'user' : 'system',
           content: @system_prompt
         }
       ] +
@@ -154,7 +166,14 @@ class GPT
               }
             end
           end
-    ).tap do |messages_list|
+    )
+    
+    # Remove the last entry if it's an assistant response.
+    if messages_list.last[:role] == 'assistant'
+      messages_list.pop
+    end
+
+    messages_list.tap do |messages_list|
       @logger.info "Messages list: #{messages_list.ai}"
     end
 
@@ -177,7 +196,7 @@ class GPT
         function = @function.instances.
           select{|f| f.name == function_name}.first
         @logger.info "Calling function: #{function.ai}"
-        function.execute(function_call['parameters']).tap do |response|
+        function.execute(JSON.parse(function_call['arguments'])).tap do |response|
           @logger.info "Function response: #{response.ai}"
           @cloudwatch_metrics.send_metric_reading(
             metric_name: "Function Responses",
@@ -209,7 +228,7 @@ class GPT
       @open_ai_client.chat(
         parameters: {
             # Get the model from the class instance.
-            model: model_name,
+            model: open_ai_model_name,
             messages: conversation_history,
             functions: @function.definitions,
             function_call: "auto",
@@ -221,7 +240,7 @@ class GPT
             metric_name: "Open AI Chat API Responses",
             dimensions: [
               name: 'Model',
-              value: @@open_ai_models[@open_ai_model][:name]
+              value: open_ai_model_name
             ],
             value: 1,
             unit: 'Count'
@@ -256,7 +275,7 @@ class GPT
             log_openai_call_cost(
               input_tokens_used:  response['usage']['prompt_tokens'],
               output_tokens_used: response['usage']['completion_tokens'],
-              openai_model: @open_ai_model
+              openai_model: open_ai_model_name
             )
 
           end
@@ -327,16 +346,12 @@ class GPT
     end
   end
 
-  def model_name
-    @@open_ai_models[@open_ai_model][:name]
-  end
-
   def model_max_tokens
-    @@open_ai_models[@open_ai_model][:max_tokens]
+    @@open_ai_models[open_ai_model_name][:max_tokens]
   end
 
   def slack_messages_to_retrieve
-    @@open_ai_models[@open_ai_model][:slack_messages_to_retrieve]
+    @@open_ai_models[open_ai_model_name][:slack_messages_to_retrieve]
   end
 
   # Compute the cost of an OpenAI call in dollars, based on the number of
@@ -348,7 +363,7 @@ class GPT
       metric_name: "OpenAI Input Token Cost",
       value: input_token_cost =
         BigDecimal(input_tokens_used) *
-          @@open_ai_models[openai_model][:input_token_cost],
+          @@open_ai_models[open_ai_model_name][:input_token_cost],
       unit: 'Count'
     )
     
@@ -356,7 +371,7 @@ class GPT
       metric_name: "OpenAI Output Token Cost",
       value: output_token_cost =
         BigDecimal(input_tokens_used) *
-          @@open_ai_models[openai_model][:output_token_cost],
+          @@open_ai_models[open_ai_model_name][:output_token_cost],
       unit: 'Count'
     )
 

@@ -7,20 +7,20 @@ ENV['AWS_RESOURCE_NAME'] = 'Slack Bot'
 
 WebMock.allow_net_connect!
 
-RSpec.describe GetBotMonitoringInformation do
+RSpec.describe GetBotInformation do
   describe '.definition' do
     it 'returns a definition' do
-      definition = GetBotMonitoringInformation.new.definition
+      definition = GetBotInformation.new.definition
 
       puts "Definition:\n#{definition.ai}"
 
-      expect(definition[:name]).to eq 'get_bot_monitoring_information'
+      expect(definition[:name]).to eq 'get_bot_information'
     end
   end
 
   describe '.execute' do
     it 'gets metric statistics' do
-      result = GetBotMonitoringInformation.new.execute({})
+      result = GetBotInformation.new.execute({})
 
       puts "Result:\n#{result.ai}"
     end

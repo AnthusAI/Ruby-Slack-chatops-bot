@@ -536,13 +536,13 @@ Resources:
                         "${Namespace}",
                         "Function Responses",
                         "Environment", "${Environment}",
-                        { "label": "With Function Calls" }
+                        { "label": "With Function Call" }
                       ],
                       [
                         "${Namespace}",
                         "Function Calls Not Required",
                         "Environment", "${Environment}",
-                        { "label": "Without Function Calls" }
+                        { "label": "No Function Call" }
                       ]
                     ],
                     "view": "pie",
@@ -672,59 +672,72 @@ Resources:
                   }
                 },
                 {
-                    "height": 15,
-                    "width": 24,
-                    "y": 32,
-                    "x": 0,
-                    "type": "explorer",
-                    "properties": {
-                        "metrics": [
-                            {
-                                "metricName": "Invocations",
-                                "resourceType": "AWS::Lambda::Function",
-                                "stat": "Sum"
-                            },
-                            {
-                                "metricName": "Duration",
-                                "resourceType": "AWS::Lambda::Function",
-                                "stat": "Average"
-                            },
-                            {
-                                "metricName": "Errors",
-                                "resourceType": "AWS::Lambda::Function",
-                                "stat": "Sum"
-                            },
-                            {
-                                "metricName": "Throttles",
-                                "resourceType": "AWS::Lambda::Function",
-                                "stat": "Sum"
-                            }
-                        ],
-                        "labels": [
-                            {
-                                "key": "FunctionName",
-                                "value": "${AwsResourcePrefix}-api-gateway-handler-${Environment}"
-                            },
-                            {
-                                "key": "FunctionName",
-                                "value": "${AwsResourcePrefix}-slack-event-processor-${Environment}"
-                            }
-                        ],
-                        "widgetOptions": {
-                            "legend": {
-                                "position": "bottom"
-                            },
-                            "view": "timeSeries",
-                            "stacked": true,
-                            "rowsPerPage": 50,
-                            "widgetsPerRow": 2
+                  "height": 15,
+                  "width": 24,
+                  "y": 32,
+                  "x": 0,
+                  "type": "explorer",
+                  "properties": {
+                    "metrics": [
+                        {
+                            "metricName": "Invocations",
+                            "resourceType": "AWS::Lambda::Function",
+                            "stat": "Sum"
                         },
-                        "period": 300,
-                        "setPeriodToTimeRange": true,
-                        "splitBy": "",
-                        "region": "${AWS::Region}",
-                        "title": "Lambda functions"
-                    }
+                        {
+                            "metricName": "Duration",
+                            "resourceType": "AWS::Lambda::Function",
+                            "stat": "Average"
+                        },
+                        {
+                            "metricName": "Errors",
+                            "resourceType": "AWS::Lambda::Function",
+                            "stat": "Sum"
+                        },
+                        {
+                            "metricName": "Throttles",
+                            "resourceType": "AWS::Lambda::Function",
+                            "stat": "Sum"
+                        }
+                    ],
+                    "labels": [
+                        {
+                            "key": "FunctionName",
+                            "value": "${AwsResourcePrefix}-api-gateway-handler-${Environment}"
+                        },
+                        {
+                            "key": "FunctionName",
+                            "value": "${AwsResourcePrefix}-slack-event-processor-${Environment}"
+                        }
+                    ],
+                    "widgetOptions": {
+                        "legend": {
+                            "position": "bottom"
+                        },
+                        "view": "timeSeries",
+                        "stacked": true,
+                        "rowsPerPage": 50,
+                        "widgetsPerRow": 2
+                    },
+                    "period": 300,
+                    "setPeriodToTimeRange": true,
+                    "splitBy": "",
+                    "region": "${AWS::Region}",
+                    "title": "Lambda functions"
+                  }
+                },
+                {
+                  "type": "log",
+                  "x": 0,
+                  "y": 47,
+                  "width": 24,
+                  "height": 12,
+                  "properties": {
+                      "query": "SOURCE '/aws/lambda/${AwsResourcePrefix}-api-gateway-handler-${Environment}' | SOURCE '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}' | fields @timestamp, @message, @logStream, @log\n| sort @timestamp desc\n| limit 20\n| filter @message like /INFO/",
+                      "region": "${AWS::Region}",
+                      "stacked": false,
+                      "view": "table"
+                  }
                 }
               ]
             }
