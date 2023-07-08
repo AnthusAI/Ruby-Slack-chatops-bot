@@ -2,17 +2,13 @@ require 'aws-sdk-cloudwatch'
 require_relative '../lib/cloudwatch_metrics'
 class GetBotMonitoringInformation < Function
 
-  def name
-    'get_bot_monitoring_information'
-  end
-
   def definition
     {
-      'name': name,
-      'description': "Monitor this bot's status by checking relevant storage values, metrics and alarms for the OpenAI model's integration with Slack.",
-      'parameters': {
-        'type': 'object',
-        'properties': {}
+      name: name,
+      description: "Monitor this bot's status by checking relevant storage values, metrics and alarms for the OpenAI model's integration with Slack.",
+      parameters: {
+        type: 'object',
+        properties: {}
       }
     }
   end

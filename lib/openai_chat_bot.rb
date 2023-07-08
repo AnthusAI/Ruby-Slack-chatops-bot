@@ -82,7 +82,7 @@ class GPT
     @logger.debug "OpenAI access token: #{@open_ai_access_token}"
 
     @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
-    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3
+    @open_ai_model = ENV['OPEN_AI_MODEL']&.to_sym || :gpt3_16k
     @logger.debug "OpenAI model: #{model_name}"
   end
   
@@ -112,28 +112,51 @@ class GPT
 
     # This array represents the conversation history that will be passed to
     # the OpenAI API.
-    [
-      # Add a system prompt to the beginning of the conversation history.
-      {
-        role: "system",
-        content: @system_prompt
-      }
-    ] +
-      conversation_history.
-        # Reverse the conversation history so that the oldest messages
-        # are first.
-        reverse.
-        # Transform each Slack message into a hash with the role and content
-        # keys that the OpenAI API expects.
-        map do |message|
-          if message['user_id'] == @slack_events_api_handler.user_id
-            { role: "assistant", content: message['message'] }
-          else
-            { role: "user", content: message['message'] }
+    (
+      [
+        # Add a system prompt to the beginning of the conversation history.
+        {
+          # GPT 3.5 is not good at paying attention to the system prompt,
+          # and OpenAI recommends that we use the user prompt instead.
+          role: (@open_ai_model.to_s =~ /gpt3/) ? 'user' : 'system',
+          content: @system_prompt
+        }
+      ] +
+        conversation_history.
+          # Reverse the conversation history so that the oldest messages
+          # are first.
+          reverse.
+          # Transform each Slack message into a hash with the role and content
+          # keys that the OpenAI API expects.
+          map do |message|
+            @logger.info "Message from Slack: #{message.ai}"
+
+            # Format the timestamp into a human-readable (and LLM-readable)
+            # string, like "FRI JUL 7 4:20 PM"
+            timestamp = message['ts']
+            time = Time.at(timestamp)
+            formatted_time = time.strftime("%a %b %e %l:%M %p").upcase
+            @logger.debug "Formatted time: #{formatted_time}"
+
+            real_name = message['user_profile']['real_name']
+
+            if message['userId'] == @slack_events_api_handler.user_id
+              {
+                role: "assistant",
+                content: "#{message['message']}"
+              }
+            else
+              {
+                role: "user",
+                # Example:
+                # FRI JUL 7 4:20 PM - Ryan: Hi, Bot.
+                content: "#{formatted_time} - #{real_name}: #{message['message']}"
+              }
+            end
           end
-        end.tap do |messages_list|
-          @logger.info "Messages list: #{messages_list.ai}"
-        end
+    ).tap do |messages_list|
+      @logger.info "Messages list: #{messages_list.ai}"
+    end
 
   end
 
@@ -162,6 +185,13 @@ class GPT
             unit: 'Count'
           )
         end
+      else
+        @logger.info "No function call required."
+        @cloudwatch_metrics.send_metric_reading(
+          metric_name: "Function Calls Not Required",
+          value: 1,
+          unit: 'Count'
+        )
       end
 
     # Send the conversation history to the OpenAI API.

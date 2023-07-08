@@ -13,7 +13,7 @@ require_relative 'cloudwatch_metrics'
 require_relative 'response_channel'
 
 class SlackEventsAPIHandler
-  attr_reader :app_id, :user_id
+  attr_reader :app_id
 
   def initialize(slack_event)
     @logger = Logger.new(STDOUT)
@@ -190,8 +190,9 @@ class SlackEventsAPIHandler
     messages = history.get_recent_messages(100)
 
     messages.map do |message|
+      @logger.debug("Processing message:\n#{message.ai}")
       message.merge(
-        'user_profile' => get_user_profile(message['user']))
+        'user_profile' => get_user_profile(message['userId']))
     end
   end
 

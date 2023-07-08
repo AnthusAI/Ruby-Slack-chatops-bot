@@ -1,16 +1,12 @@
 class GetSystemMonitoringInformation < Function
 
-  def name
-    'get_system_monitoring_information'
-  end
-
   def definition
     {
-      'name': name,
-      'description': "Monitor the system's status by checking relevant storage values, metrics and alarms for the sales system.",
-      'parameters': {
-        'type': 'object',
-        'properties': {}
+      name: name,
+      description: "Monitor the system's status by checking relevant storage values, metrics and alarms for the sales system.",
+      parameters: {
+        type: 'object',
+        properties: {}
       }
     }
   end
@@ -18,9 +14,9 @@ class GetSystemMonitoringInformation < Function
   def execute(parameters)
     puts "Getting system monitoring information..."
     {
-      "status": 'WARN',
-      "summary": 'The system is experiencing a high volume of orders, which may cause delays in order processing.',
-      "alarms": [
+      status: 'WARN',
+      summary: 'The system is experiencing a high volume of orders, which may cause delays in order processing.',
+      alarms: [
         { 'critical-something-alarm': 'OKAY' },
         { 'some-other-alarm': 'OKAY' },
         { 'slow-order-processing-warning-alarm': 'ALERT' }

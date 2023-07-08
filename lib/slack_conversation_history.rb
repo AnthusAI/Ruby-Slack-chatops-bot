@@ -84,7 +84,14 @@ class SlackConversationHistory
     existing_item = get_message(ts)
     
     # If the item doesn't exist, compute the tokens and store the new item
-    if existing_item.nil?
+    if (
+      existing_item.nil? or
+      # If we have a cached value then we can't necessarily use it, because
+      # messages in the history can be updated. So we need to check if the
+      # message has changed, and if so, update the cached value.
+      !existing_item['message'].eql?(message)
+    )
+
       token_estimate = OpenAITokenEstimator.estimate_token_count(message)
   
       params = {

@@ -31,6 +31,10 @@ class Function
     self.new(instances: instances)
   end
 
+  def name
+    ActiveSupport::Inflector.underscore self.class.to_s
+  end
+
   def definitions
     @instances.map do |function|
       function.definition
