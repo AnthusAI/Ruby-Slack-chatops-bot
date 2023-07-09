@@ -1,6 +1,6 @@
 require 'aws-sdk-cloudwatch'
 require_relative '../lib/cloudwatch_metrics'
-require_relative '../lib/configuration_settings'
+require_relative '../lib/configuration_setting'
 
 class GetBotInformation < Function
 
@@ -101,8 +101,10 @@ class GetBotInformation < Function
         ]
       }
     when 'model'
-      Configuration::Model.get
+      Configuration::Model.new.get
     end
+  end.tap do |result|
+    @@logger.info "Result: #{result.ai}"
   end
 
 end

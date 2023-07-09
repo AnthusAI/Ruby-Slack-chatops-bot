@@ -22,6 +22,7 @@ class KeyValueStore
       })
     rescue Aws::DynamoDB::Errors::ServiceError => e
       @logger.error "Unable to add item:\n#{e.message}"
+      raise e
     end
   end
   
@@ -49,7 +50,7 @@ class KeyValueStore
       end
     rescue Aws::DynamoDB::Errors::ServiceError => e
       @logger.error "Unable to get item:\n#{e.message}"
-      nil
+      raise e
     end.tap do |value|
       @logger.info("Returning value: #{value}")
     end

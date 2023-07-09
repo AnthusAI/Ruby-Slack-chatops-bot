@@ -34,7 +34,7 @@ class ResponseChannel
   end
   
   def update_message(text:)
-    @logger.info(
+    @logger.debug(
       "Updating existing message from timestamp #{@timestamp} in Slack: #{text}")
   
     client = Slack::Web::Client.new(token: @slack_access_token)
@@ -44,7 +44,7 @@ class ResponseChannel
       text: text,
       ts: @timestamp # Timestamp of the message to update
     ).tap do |response|
-      @logger.info("Updated message in Slack: #{response.inspect}")
+      @logger.debug("Updated message in Slack: #{response.inspect}")
       @cloudwatch_metrics.send_metric_reading(
         metric_name: "Slack Messages Updated",
         value: 1,

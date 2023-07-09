@@ -24,10 +24,12 @@ class SetBotInformation < Function
 
   def execute(arguments)
     @@logger.info "Setting bot configuration setting: #{arguments.ai}"
-    Configuration::Model.set(value: arguments['value'])
+    new_setting = Configuration::Setting.
+      find(key: arguments['key']).set(value: arguments['value'])
 
     {
-      "message": "Set bot configuration setting: #{name} => #{arguments['value']}"
+      arguments['keyt'] => new_setting,
+      "message": "Set bot configuration setting: #{arguments['key']} => #{new_setting}"
     }    
   end
 

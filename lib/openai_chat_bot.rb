@@ -8,7 +8,7 @@ require 'openai'
 require_relative 'openai_token_estimator'
 require_relative 'function'
 require_relative 'cloudwatch_metrics'
-require_relative 'configuration_settings'
+require_relative 'configuration_setting'
 
 class GPT
 
@@ -89,12 +89,12 @@ class GPT
 
   def open_ai_model_name
     ENV['OPEN_AI_MODEL'] ||
-      Configuration::Model.get
+      Configuration::Model.new.get
   end
 
   def temperature
     ENV['TEMPERATURE'] ||
-      Configuration::Temperature.get
+      Configuration::Temperature.new.get
   end
   
   # Convert the conversation history list of hashes that came from the Slack API
@@ -141,7 +141,7 @@ class GPT
           # Transform each Slack message into a hash with the role and content
           # keys that the OpenAI API expects.
           map do |message|
-            @logger.info "Message from Slack: #{message.ai}"
+            @logger.debug "Message from Slack: #{message.ai}"
 
             # Format the timestamp into a human-readable (and LLM-readable)
             # string, like "FRI JUL 7 4:20 PM"

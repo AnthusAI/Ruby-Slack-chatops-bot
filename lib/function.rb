@@ -8,6 +8,9 @@ class Function
 
   def initialize(instances:nil)
     @instances = instances
+
+    @logger = Logger.new(STDOUT)
+    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
   end
 
   attr_reader :instances
