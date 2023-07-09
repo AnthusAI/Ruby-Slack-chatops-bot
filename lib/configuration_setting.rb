@@ -1,3 +1,4 @@
+require_relative 'helper'
 require_relative 'key_value_store'
 require 'active_support'
 
@@ -7,8 +8,6 @@ module Configuration
 
     def initialize(key: nil)
       @key = key
-      @logger = Logger.new(STDOUT)
-      @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     end
 
     def self.find(key:)
@@ -33,7 +32,7 @@ module Configuration
     end
 
     def set(value:)
-      @logger.debug "Setting #{computed_key} to #{value}"
+      $logger.debug "Setting #{computed_key} to #{value}"
       KeyValueStore.new.set(key: computed_key, value: value)
       {
         key: computed_key,
@@ -54,7 +53,7 @@ module Configuration
     end
 
     def set(value:)
-      @logger.debug "Setting model to #{value}"
+      $logger.debug "Setting model to #{value}"
 
       # Massage model/user input into valid model name.
       case value

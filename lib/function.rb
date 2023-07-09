@@ -1,16 +1,10 @@
-require 'logger'
 require 'active_support'
+require_relative 'helper'
 
 class Function
 
-  @@logger = Logger.new(STDOUT)
-  @@logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
-
   def initialize(instances:nil)
     @instances = instances
-
-    @logger = Logger.new(STDOUT)
-    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
   end
 
   attr_reader :instances
@@ -42,7 +36,7 @@ class Function
     @instances.map do |function|
       function.definition
     end.tap do |definitions|
-      @@logger.debug "Function definitions:\n#{definitions.ai}"
+      $logger.debug "Function definitions:\n#{definitions.ai}"
     end
   end
 

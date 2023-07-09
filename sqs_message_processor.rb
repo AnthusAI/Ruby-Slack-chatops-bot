@@ -1,6 +1,5 @@
 require 'json'
-require 'logger'
-require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
+require_relative 'lib/helper'
 require_relative 'lib/slack_events_api'
 
 def sqs_message_processor_lambda_handler(event:, context:)

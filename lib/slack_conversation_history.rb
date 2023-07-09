@@ -1,12 +1,11 @@
 require 'aws-sdk-ssm'
 require 'aws-sdk-dynamodb'
+require_relative 'helper'
 require_relative 'openai_token_estimator'
 
 class SlackConversationHistory
   def initialize(channel_id:)
     @channel_id = channel_id
-    @logger = Logger.new(STDOUT)
-    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @dynamodb = Aws::DynamoDB::Client.new
     @table_name = ENV['SLACK_CONVERSATION_HISTORY_TABLE']
 
@@ -22,7 +21,7 @@ class SlackConversationHistory
     @slack_access_token = secretsmanager_client.get_secret_value(
       secret_id: secret_name
     ).secret_string
-    @logger.debug "Slack app access token: #{@slack_access_token}"
+    $logger.debug "Slack app access token: #{@slack_access_token}"
   end
 
   def fetch_from_slack
@@ -31,7 +30,7 @@ class SlackConversationHistory
 
     if response['ok']
       messages = response['messages']
-      @logger.debug("Fetched conversation history for channel #{@channel_id}:\n#{JSON.pretty_generate(messages.inspect)}")
+      $logger.debug("Fetched conversation history for channel #{@channel_id}:\n#{JSON.pretty_generate(messages.inspect)}")
 
       messages.reject { |message| 
         @response_slack_message &&
@@ -44,7 +43,7 @@ class SlackConversationHistory
         )
       end
     else
-      @logger.error("Error getting conversation history: #{response['error']}")
+      $logger.error("Error getting conversation history: #{response['error']}")
       nil
     end
   end
@@ -110,6 +109,5 @@ class SlackConversationHistory
       return existing_item
     end
   end
-  
 
 end

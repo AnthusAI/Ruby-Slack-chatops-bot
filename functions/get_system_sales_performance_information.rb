@@ -12,7 +12,7 @@ class GetSystemSalesPerformanceInformation < Function
   end
 
   def execute(parameters)
-    puts "Getting system sales performance information..."
+    $logger.debug "Getting system sales performance information..."
     {
       summary: '$1,000,000 USD in revenue from 1000 transactions, with a 10% conversion rate.',
       kpis: [

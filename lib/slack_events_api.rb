@@ -1,4 +1,3 @@
-require 'logger'
 require 'net/http'
 require 'uri'
 require 'aws-sdk-ssm'
@@ -6,6 +5,7 @@ require 'aws-sdk-secretsmanager'
 require 'awesome_print'
 require 'active_support'
 require 'slack-ruby-client'
+require_relative 'helper'
 require_relative 'openai_chat_bot'
 require_relative 'key_value_store'
 require_relative 'slack_conversation_history'
@@ -16,10 +16,8 @@ class SlackEventsAPIHandler
   attr_reader :app_id
 
   def initialize(slack_event)
-    @logger = Logger.new(STDOUT)
-    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
     @slack_event = JSON.parse(slack_event)
-    @logger.debug("Handling Slack event:\n#{slack_event.ai}")
+    $logger.debug("Handling Slack event:\n#{slack_event.ai}")
     @cloudwatch_metrics = CloudWatchMetrics.new
     
     environment =         ENV['ENVIRONMENT'] || 'development'
@@ -35,7 +33,7 @@ class SlackEventsAPIHandler
     @slack_access_token = secretsmanager_client.get_secret_value(
       secret_id: secret_name
     ).secret_string
-    @logger.debug "Slack app access token: #{@slack_access_token}"
+    $logger.debug "Slack app access token: #{@slack_access_token}"
   end
 
   def event_type
@@ -43,7 +41,7 @@ class SlackEventsAPIHandler
   end
 
   def dispatch
-    @logger.debug("Dispatching event of type: #{event_type}")
+    $logger.debug("Dispatching event of type: #{event_type}")
 
     case event_type
     when 'url_verification'
@@ -79,7 +77,7 @@ class SlackEventsAPIHandler
     @message_text ||=
       case message_subtype
       when 'message_changed'
-        @logger.info("Handling message_changed event.")
+        $logger.info("Handling message_changed event.")
         @slack_event['event']['message']['text']
       else
         @slack_event['event']['text']
@@ -87,7 +85,7 @@ class SlackEventsAPIHandler
   end
 
   def message
-    @logger.info("Slack message event on channel #{@slack_event['event']['channel']} with text: \"#{message_text}\"")
+    $logger.info("Slack message event on channel #{@slack_event['event']['channel']} with text: \"#{message_text}\"")
 
     @cloudwatch_metrics.send_metric_reading(
       metric_name: "Slack Messages Received",
@@ -97,24 +95,24 @@ class SlackEventsAPIHandler
 
     case message_subtype
     when 'message_deleted'
-      @logger.info("Ignoring message_deleted event.")
+      $logger.info("Ignoring message_deleted event.")
       return
     end
   
     if event_needs_processing?
-      @logger.info("Responding to message event.")
+      $logger.info("Responding to message event.")
 
       @response_channel = ResponseChannel.new(
         slack_access_token: @slack_access_token,
         channel: @slack_event['event']['channel'])
 
       @response_slack_message = @response_channel.send_message(text:':gear:')
-      @logger.info("Posted status response to Slack: #{@response_slack_message.ai}")
+      $logger.info("Posted status response to Slack: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
 
-      @logger.debug "Conversation history:\n#{conversation_history.ai}"
+      $logger.debug "Conversation history:\n#{conversation_history.ai}"
 
       gpt = GPT.new(
         slack_events_api_handler: self,
@@ -130,7 +128,7 @@ class SlackEventsAPIHandler
       @response_channel.update_message(
         text: response)
     else
-      @logger.info("Not responding to message event.")
+      $logger.info("Not responding to message event.")
     end
     
   end
@@ -141,11 +139,11 @@ class SlackEventsAPIHandler
 
   def event_mentions_me?
     if user_id.blank?
-      @logger.warn("This app does not have a user ID!")
+      $logger.warn("This app does not have a user ID!")
       return false
     end
     message_text_mentions_me = message_text.include?(user_id || '')
-    @logger.debug("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
+    $logger.debug("does \"#{message_text}\" mention the ID of this user, \"#{@user_id}\"?  #{message_text_mentions_me ? 'Yes!' : 'No.'}")
     message_text_mentions_me
   end
 
@@ -162,14 +160,14 @@ class SlackEventsAPIHandler
 
   def event_is_from_me?
     event_is_from_me = (!event_app_id.blank?) and (event_app_id == @app_id)
-    @logger.debug("is \"#{event_app_id}\" not blank and also the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
+    $logger.debug("is \"#{event_app_id}\" not blank and also the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
     event_is_from_me
   end
 
   def event_is_direct_message?
     channel_type = @slack_event['event']['channel_type']
     event_is_direct_message = channel_type == 'im'
-    @logger.debug("is \"#{channel_type}\" the type of this channel, \"im\"?  #{event_is_direct_message ? 'Yes!' : 'No.'}")
+    $logger.debug("is \"#{channel_type}\" the type of this channel, \"im\"?  #{event_is_direct_message ? 'Yes!' : 'No.'}")
     event_is_direct_message
   end
 
@@ -177,7 +175,7 @@ class SlackEventsAPIHandler
     (( event_mentions_me? or
       event_is_direct_message? ) and
         not event_is_from_me?).tap do |does_event_need_processing|
-          @logger.debug('Does this event need processing? ' +
+          $logger.debug('Does this event need processing? ' +
             (does_event_need_processing ? 'Yes!' : 'No.'))
         end
   end
@@ -190,7 +188,7 @@ class SlackEventsAPIHandler
     messages = history.get_recent_messages(100)
 
     messages.map do |message|
-      @logger.debug("Processing message:\n#{message.ai}")
+      $logger.debug("Processing message:\n#{message.ai}")
       message.merge(
         'user_profile' => get_user_profile(message['userId']))
     end
@@ -222,7 +220,7 @@ class SlackEventsAPIHandler
   end  
   
   def log_error_and_return_nil(error)
-    @logger.error("Error: #{error}")
+    $logger.error("Error: #{error}")
     nil
   end
   

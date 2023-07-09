@@ -1,4 +1,4 @@
-require 'logger'
+require_relative 'helper'
 require 'aws-sdk-cloudwatch'
 
 class CloudWatchMetrics
@@ -7,9 +7,6 @@ class CloudWatchMetrics
     @cloudwatch = Aws::CloudWatch::Client.new(
       region: ENV['AWS_REGION'] || 'us-east-1')
     @namespace = ENV['AWS_RESOURCE_NAME'].gsub(/ /,'')
-
-    @logger = Logger.new(STDOUT)
-    @logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
   end
 
   def send_metric_reading(value:, metric_name:, unit:'None', dimensions: [])
@@ -32,7 +29,7 @@ class CloudWatchMetrics
   end
 
   def get_metric_sum_over_time(metric_name:, time_window: 3600)
-    @logger.info "Getting average of metric #{metric_name} over the last #{time_window} seconds."
+    $logger.info "Getting average of metric #{metric_name} over the last #{time_window} seconds."
   
     response = @cloudwatch.get_metric_statistics({
       # The namespace of the metric, in this case, the value before "::"

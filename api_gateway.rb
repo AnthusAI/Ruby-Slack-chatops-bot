@@ -1,13 +1,10 @@
 require 'json'
-require 'logger'
-require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 require 'aws-sdk-sqs'
+require_relative 'lib/helper'
 require_relative 'lib/slack_events_api'
 
 def api_gateway_lambda_handler(event:, context:)
-  logger = Logger.new(STDOUT)
-  logger.level = !ENV['DEBUG'].blank? ? Logger::DEBUG : Logger::INFO
-  logger.debug("Received Slack API event from API Gateway:\n#{event.ai}")
+  $logger.debug("Received Slack API event from API Gateway:\n#{event.ai}")
 
   # We need to examine the Slack message to see if it's a URL verification
   # request or a message event.  The Slack event is passed as a JSON string
@@ -19,7 +16,7 @@ def api_gateway_lambda_handler(event:, context:)
   # event, we must respond immediately with a 200 OK, and then process the
   # message asynchronously.
   if slack_event_handler.event_type == 'url_verification'
-    logger.info("Responding to URL verification request with challenge: #{slack_event_handler.url_confirmation}")
+    $logger.info("Responding to URL verification request with challenge: #{slack_event_handler.url_confirmation}")
     return {
       statusCode: 200,
       body: slack_event_handler.dispatch
@@ -27,14 +24,14 @@ def api_gateway_lambda_handler(event:, context:)
   end
 
   unless slack_event_handler.event_needs_processing?
-    logger.info("Event does not need processing.  Responding with 200 OK.")
+    $logger.info("Event does not need processing.  Responding with 200 OK.")
     return {
       statusCode: 200,
       body: 'Event does not need processing.'
     }
   end
 
-  logger.info("Enqueing SQS message for processing and responding with 200 OK.")
+  $logger.info("Enqueing SQS message for processing and responding with 200 OK.")
 
   # When it's a message event, we must post the message to the SQS queue for
   # asynchronous processing.

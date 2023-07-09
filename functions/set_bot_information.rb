@@ -23,7 +23,7 @@ class SetBotInformation < Function
   end
 
   def execute(arguments)
-    @@logger.info "Setting bot configuration setting: #{arguments.ai}"
+    $logger.debug "Setting bot configuration setting: #{arguments.ai}"
     new_setting = Configuration::Setting.
       find(key: arguments['key']).set(value: arguments['value'])
 

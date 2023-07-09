@@ -1,8 +1,6 @@
-require 'logger'
+require_relative 'helper'
 
 class OpenAITokenEstimator
-
-  @@logger = Logger.new(STDOUT)
 
   def self.estimate_token_count(text, method = 'max')
     # method can be "average", "words", "chars", "max", "min", defaults to "max"
@@ -40,7 +38,7 @@ class OpenAITokenEstimator
     end
 
     output.to_i.tap do |output|
-      @@logger.info "Estimated tokens: #{output}"
+      $logger.info "Estimated tokens: #{output}"
     end
 
   end

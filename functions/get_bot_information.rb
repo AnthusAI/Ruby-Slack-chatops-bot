@@ -27,7 +27,7 @@ class GetBotInformation < Function
   def execute(arguments)
     cloudwatch_metrics = CloudWatchMetrics.new
 
-    @@logger.info "Getting bot monitoring information: #{arguments.ai}"
+    $logger.info "Getting bot monitoring information: #{arguments.ai}"
 
     case arguments['key']
     when 'status'
@@ -104,7 +104,7 @@ class GetBotInformation < Function
       Configuration::Model.new.get
     end
   end.tap do |result|
-    @@logger.info "Result: #{result.ai}"
+    $logger.info "Result: #{result.ai}"
   end
 
 end
