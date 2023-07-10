@@ -2,12 +2,14 @@ require 'aws-sdk-ssm'
 require 'aws-sdk-dynamodb'
 require_relative 'helper'
 require_relative 'openai_token_estimator'
+require_relative 'cloudwatch_metrics'
 
 class SlackConversationHistory
   def initialize(channel_id:)
     @channel_id = channel_id
     @dynamodb = Aws::DynamoDB::Client.new
     @table_name = ENV['SLACK_CONVERSATION_HISTORY_TABLE']
+    @cloudwatch_metrics = CloudWatchMetrics.new
 
     environment =         ENV['ENVIRONMENT'] || 'development'
     aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
@@ -25,6 +27,12 @@ class SlackConversationHistory
   end
 
   def fetch_from_slack
+    @cloudwatch_metrics.send_metric_reading(
+      metric_name: "Slack API Calls",
+      value: 1,
+      unit: 'Count'
+    )
+
     client = Slack::Web::Client.new(token: @slack_access_token)
     response = client.conversations_history(channel: @channel_id, limit: 200)
 

@@ -196,6 +196,11 @@ class SlackEventsAPIHandler
   end
 
   def get_user_profile(user_id)
+    @cloudwatch_metrics.send_metric_reading(
+      metric_name: "Slack API Calls",
+      value: 1,
+      unit: 'Count'
+    )
     KeyValueStore.new.get(key:"user_profiles/#{user_id}") do
       Slack::Web::Client.new(token: @slack_access_token).
         users_profile_get(user: user_id)['profile']
@@ -204,6 +209,11 @@ class SlackEventsAPIHandler
   
   def bot_id
     @bot_id ||= KeyValueStore.new.get(key:'bot_id') do
+      @cloudwatch_metrics.send_metric_reading(
+        metric_name: "Slack API Calls",
+        value: 1,
+        unit: 'Count'
+      )
       profile_info =
         Slack::Web::Client.new(token: @slack_access_token).users_profile_get
       profile_info['ok'] ? profile_info['profile']['bot_id'] : log_error_and_return_nil(profile_info['error'])
@@ -212,6 +222,11 @@ class SlackEventsAPIHandler
     
   def user_id
     @user_id ||= KeyValueStore.new.get(key:'user_id') do
+      @cloudwatch_metrics.send_metric_reading(
+        metric_name: "Slack API Calls",
+        value: 1,
+        unit: 'Count'
+      )
       bot_info = 
         Slack::Web::Client.new(token: @slack_access_token).bots_info(bot: bot_id)
       bot_info['ok'] ?

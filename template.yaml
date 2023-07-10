@@ -328,6 +328,14 @@ Resources:
                       ],
                       [
                         "${Namespace}",
+                        "Slack API Calls",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Slack API Calls"
+                        }
+                      ],
+                      [
+                        "${Namespace}",
                         "Slack Messages Updated",
                         "Environment", "${Environment}",
                         {
@@ -352,7 +360,7 @@ Resources:
                       ]
                     ],
                     "view": "timeSeries",
-                    "stacked": false,
+                    "stacked": true,
                     "region": "${AWS::Region}",
                     "period": 300,
                     "stat": "Sum",
@@ -406,7 +414,7 @@ Resources:
                       ]
                     ],
                     "view": "timeSeries",
-                    "stacked": false,
+                    "stacked": true,
                     "region": "${AWS::Region}",
                     "period": 300,
                     "stat": "Sum",
@@ -446,18 +454,10 @@ Resources:
                         {
                           "label": "Completion Tokens"
                         }
-                      ],
-                      [
-                        "${Namespace}",
-                        "OpenAI Total Token Usage",
-                        "Environment", "${Environment}",
-                        {
-                          "label": "Total Tokens"
-                        }
                       ]
                     ],
                     "view": "timeSeries",
-                    "stacked": false,
+                    "stacked": true,
                     "region": "${AWS::Region}",
                     "period": 300,
                     "stat": "Sum",
@@ -497,18 +497,10 @@ Resources:
                         {
                           "label": "OpenAI Output Token Cost"
                         }
-                      ],
-                      [
-                        "${Namespace}",
-                        "OpenAI Total Token Cost",
-                        "Environment", "${Environment}",
-                        {
-                          "label": "OpenAI Total Token Cost"
-                        }
                       ]
                     ],
                     "view": "timeSeries",
-                    "stacked": false,
+                    "stacked": true,
                     "region": "${AWS::Region}",
                     "period": 300,
                     "stat": "Sum",
