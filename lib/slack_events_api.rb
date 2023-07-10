@@ -106,7 +106,8 @@ class SlackEventsAPIHandler
         slack_access_token: @slack_access_token,
         channel: @slack_event['event']['channel'])
 
-      @response_slack_message = @response_channel.send_message(text:':gear:')
+      @response_slack_message =
+        @response_channel.update_status_emoji(emoji:':gear:')
       $logger.info("Posted status response to Slack: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
@@ -120,8 +121,8 @@ class SlackEventsAPIHandler
       )
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
 
-      @response_channel.update_message(
-        text: ':robot_face:')
+      @response_channel.update_status_emoji(
+        emoji: ':robot_face:')
 
       response = gpt.get_response(conversation_history:chat_messages_list)
     

@@ -37,7 +37,7 @@ class GPT
     @slack_events_api_handler = slack_events_api_handler
     @response_channel = response_channel
 
-    @function = Function.load
+    @function = Function.load(response_channel: response_channel)
 
     environment =         ENV['ENVIRONMENT'] || 'development'
     aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
@@ -71,7 +71,8 @@ class GPT
     # Get the OpenAI API access token from AWS Secrets Manager.
     # (CloudFormation cannot create SSM SecureString parameters.)
 
-    secretsmanager_client = Aws::SecretsManager::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
+    secretsmanager_client = Aws::SecretsManager::Client.new(
+      region: ENV['AWS_REGION'] || 'us-east-1')
     
     secret_name = "#{aws_resource_prefix}-openai-api-token-#{environment}"
     @open_ai_access_token = secretsmanager_client.get_secret_value(
@@ -179,27 +180,31 @@ class GPT
   def get_response(
     conversation_history:, function_call:nil)
 
-    $logger.info "Getting response to conversation history ending with (last 10):\n#{conversation_history.last(10).ai}"
+    $logger.info "Conversation history ending with (last 10):\n#{conversation_history.last(10).ai}"
 
     # Call the function if it's a function call.
     function_name = nil
     function_response =
       if function_call.present?
         $logger.info "Getting response to function call: #{function_call.ai}"
-        @response_channel.update_message(
-          text: ':wrench:')
+        @response_channel.update_status_emoji(
+          emoji: ':wrench:')
 
         function_name = function_call['name']
         function = @function.instances.
           select{|f| f.name == function_name}.first
         $logger.info "Calling function: #{function.ai}"
-        function.execute(JSON.parse(function_call['arguments'])).tap do |response|
+        function.execute(
+          JSON.parse(function_call['arguments'])).tap do |response|
+
           $logger.info "Function response: #{response.ai}"
           @cloudwatch_metrics.send_metric_reading(
             metric_name: "Function Responses",
             value: 1,
             unit: 'Count'
           )
+        end.tap do |response|
+          $logger.info "Function response: #{response.ai}"
         end
       else
         $logger.info "No function call required."
@@ -378,5 +383,5 @@ class GPT
       unit: 'Count'
     )
   end
-  
+
 end

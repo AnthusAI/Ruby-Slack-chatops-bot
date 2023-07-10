@@ -11,7 +11,8 @@ class SetBotInformation < Function
             "type": "string",
             "enum": [
               "model",
-              "temperature"
+              "temperature",
+              "status_emojis"
             ]
           },
           "value": {
@@ -28,7 +29,7 @@ class SetBotInformation < Function
       find(key: arguments['key']).set(value: arguments['value'])
 
     {
-      arguments['keyt'] => new_setting,
+      arguments['key'] => new_setting,
       "message": "Set bot configuration setting: #{arguments['key']} => #{new_setting}"
     }    
   end

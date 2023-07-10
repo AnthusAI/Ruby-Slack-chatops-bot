@@ -22,7 +22,9 @@ module Configuration
     end
 
     def computed_key
-      @key || self.class.to_s.gsub(/^(.*)\:\:/,'').downcase
+      @key ||
+        ActiveSupport::Inflector.underscore(
+          self.class.to_s.gsub(/^(.*)\:\:/,''))
     end
 
     def get
@@ -46,10 +48,6 @@ module Configuration
 
     def default
       'gpt-3.5-turbo-0613'
-    end
-
-    def get
-      super
     end
 
     def set(value:)
@@ -76,10 +74,6 @@ module Configuration
       0.9
     end
 
-    def get
-      super(key: 'temperature')
-    end
-
     def set(value:)
       case value
       when /high/i
@@ -93,6 +87,42 @@ module Configuration
       else
         super(value: default)
       end
+    end
+
+  end
+
+  class Boolean < Setting
+
+    def get
+      case super
+      when true
+        true
+      when 'true'
+        true
+      when 'yes'
+        true
+      else
+        false
+      end
+    end
+
+    def set(value:)
+      case value
+      when /true/i
+        super(value: true)
+      when /yes/i
+        super(value: true)
+      else
+        super(value: false)
+      end
+    end
+
+  end
+
+  class StatusEmojis < Boolean
+
+    def default
+      true
     end
 
   end

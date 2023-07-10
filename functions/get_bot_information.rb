@@ -16,10 +16,12 @@ class GetBotInformation < Function
             "enum": [
               "status",
               "model",
-              "temperature"
+              "temperature",
+              "status_emojis"
             ]
           }
-        }
+        },
+        "required": ["key"]
       }
     }
   end
@@ -100,8 +102,8 @@ class GetBotInformation < Function
           
         ]
       }
-    when 'model'
-      Configuration::Model.new.get
+    else
+      Configuration::Setting.find(key: arguments['key']).get
     end
   end.tap do |result|
     $logger.info "Result: #{result.ai}"

@@ -1,5 +1,6 @@
 require 'logger'
 require_relative 'cloudwatch_metrics'
+require_relative 'configuration_setting'
 
 class ResponseChannel
 
@@ -8,6 +9,9 @@ class ResponseChannel
 
     @slack_access_token = slack_access_token
     @channel = channel
+    
+    @status_emojis = Configuration::StatusEmojis.new.get
+    $logger.info("Status emojis are #{@status_emojis ? 'enabled' : 'disabled'}")
   end
 
   def send_message(text:)
@@ -31,8 +35,13 @@ class ResponseChannel
   end
   
   def update_message(text:)
+    if @timestamp.nil?
+      $logger.info("Sending new message since there is no existing message to update.")
+      return send_message(text: text)
+    end
+
     $logger.debug(
-      "Updating existing message from timestamp #{@timestamp} in Slack: #{text}")
+    "Updating existing message from timestamp #{@timestamp} in Slack: #{text}")
   
     client = Slack::Web::Client.new(token: @slack_access_token)
   
@@ -47,6 +56,21 @@ class ResponseChannel
         value: 1,
         unit: 'Count'
       )
+    end
+  end
+
+  def update_status_emoji(emoji:)
+    if @status_emojis
+      $logger.info("Updating status emoji to #{emoji}")
+
+      if @timestamp.nil?
+        send_message(text: emoji)
+      else
+        update_message(text: emoji)
+      end
+      
+    else
+      $logger.info("Not updating status emoji to #{emoji} because status emojis are disabled.")
     end
   end
 
