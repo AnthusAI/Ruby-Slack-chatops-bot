@@ -1,6 +1,6 @@
 require 'rspec'
 require 'active_support'
-require 'awesome_print'
+require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 require_relative 'function.rb'
 
 RSpec.describe Function do

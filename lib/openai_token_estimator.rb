@@ -38,7 +38,7 @@ class OpenAITokenEstimator
     end
 
     output.to_i.tap do |output|
-      $logger.info "Estimated tokens: #{output}"
+      $logger.debug "Estimated tokens: #{output}"
     end
 
   end

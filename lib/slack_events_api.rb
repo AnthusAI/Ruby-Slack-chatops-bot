@@ -2,7 +2,7 @@ require 'net/http'
 require 'uri'
 require 'aws-sdk-ssm'
 require 'aws-sdk-secretsmanager'
-require 'awesome_print'
+require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 require 'active_support'
 require 'slack-ruby-client'
 require_relative 'helper'
@@ -23,6 +23,7 @@ class SlackEventsAPIHandler
     environment =         ENV['ENVIRONMENT'] || 'development'
     aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
     @app_id =             ENV['SLACK_APP_ID']
+    @user_profiles =      {}
 
     # Get the Slack app access token from AWS Secrets Manager.
     # (CloudFormation cannot create SSM SecureString parameters.)
@@ -86,6 +87,7 @@ class SlackEventsAPIHandler
 
   def message
     $logger.info("Slack message event on channel #{@slack_event['event']['channel']} with text: \"#{message_text}\"")
+    $logger.debug("Slack message event:\n#{@slack_event['event'].ai}")
 
     @cloudwatch_metrics.send_metric_reading(
       metric_name: "Slack Messages Received",
@@ -103,11 +105,12 @@ class SlackEventsAPIHandler
       $logger.info("Responding to message event.")
 
       @response_channel = ResponseChannel.new(
+        original_message_timestamp: @slack_event['event']['ts'],
         slack_access_token: @slack_access_token,
         channel: @slack_event['event']['channel'])
 
       @response_slack_message =
-        @response_channel.update_status_emoji(emoji:':gear:')
+        @response_channel.update_status_emoji(emoji:'eyes')
       $logger.info("Posted status response to Slack: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
@@ -122,7 +125,7 @@ class SlackEventsAPIHandler
       chat_messages_list = gpt.build_chat_messages_list(conversation_history)
 
       @response_channel.update_status_emoji(
-        emoji: ':robot_face:')
+        emoji: 'thinking_face')
 
       response = gpt.get_response(conversation_history:chat_messages_list)
     
@@ -196,19 +199,22 @@ class SlackEventsAPIHandler
   end
 
   def get_user_profile(user_id)
-    @cloudwatch_metrics.send_metric_reading(
-      metric_name: "Slack API Calls",
-      value: 1,
-      unit: 'Count'
-    )
-    KeyValueStore.new.get(key:"user_profiles/#{user_id}") do
-      Slack::Web::Client.new(token: @slack_access_token).
-        users_profile_get(user: user_id)['profile']
-    end
+    @user_profiles[user_id] =
+      KeyValueStore.new.get(key:"user_profiles/#{user_id}") do
+        $logger.info("Getting user profile from Slack API for user ID: #{user_id}")
+        @cloudwatch_metrics.send_metric_reading(
+          metric_name: "Slack API Calls",
+          value: 1,
+          unit: 'Count'
+        )
+        Slack::Web::Client.new(token: @slack_access_token).
+          users_profile_get(user: user_id)['profile']
+      end
   end
   
   def bot_id
     @bot_id ||= KeyValueStore.new.get(key:'bot_id') do
+      $logger.info("Getting bot ID from Slack API.")
       @cloudwatch_metrics.send_metric_reading(
         metric_name: "Slack API Calls",
         value: 1,
@@ -222,6 +228,7 @@ class SlackEventsAPIHandler
     
   def user_id
     @user_id ||= KeyValueStore.new.get(key:'user_id') do
+      $logger.info("Getting user ID from Slack API.")
       @cloudwatch_metrics.send_metric_reading(
         metric_name: "Slack API Calls",
         value: 1,

@@ -320,6 +320,14 @@ Resources:
                       ],
                       [
                         "${Namespace}",
+                        "Slack Reactions Sent",
+                        "Environment", "${Environment}",
+                        {
+                          "label": "Slack Reactions Sent"
+                        }
+                      ],
+                      [
+                        "${Namespace}",
                         "Slack Messages Sent",
                         "Environment", "${Environment}",
                         {
@@ -433,7 +441,39 @@ Resources:
                 {
                   "type": "metric",
                   "x": 0,
-                  "y": 12,
+                  "y": 0,
+                  "width": 24,
+                  "height": 6,
+                  "properties": {
+                    "title": "OpenAI API Responses by Temperature",
+                    "metrics": [
+                      [
+                        "${Namespace}",
+                        "Open AI Temperature",
+                        "Environment", "${Environment}"
+                      ]
+                    ],
+                    "view": "timeSeries",
+                    "stacked": true,
+                    "region": "${AWS::Region}",
+                    "period": 300,
+                    "stat": "Sum",
+                    "liveData": true,
+                    "yAxis": {
+                        "left": {
+                            "label": "count per minute",
+                            "showUnits": false
+                        },
+                        "right": {
+                            "showUnits": true
+                        }
+                    }
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 16,
                   "width": 24,
                   "height": 6,
                   "properties": {
@@ -476,7 +516,7 @@ Resources:
                 {
                   "type": "metric",
                   "x": 0,
-                  "y": 15,
+                  "y": 18,
                   "width": 24,
                   "height": 6,
                   "properties": {
@@ -519,7 +559,7 @@ Resources:
                 {
                   "type": "metric",
                   "x": 0,
-                  "y": 18,
+                  "y": 21,
                   "width": 6,
                   "height": 8,
                   "properties": {
@@ -555,7 +595,7 @@ Resources:
                 {
                   "type": "metric",
                   "x": 6,
-                  "y": 18,
+                  "y": 24,
                   "width": 6,
                   "height": 8,
                   "properties": {
@@ -591,7 +631,7 @@ Resources:
                 {
                   "type": "metric",
                   "x": 12,
-                  "y": 18,
+                  "y": 27,
                   "width": 6,
                   "height": 8,
                   "properties": {
@@ -628,7 +668,7 @@ Resources:
                   "type": "metric",
                   "title": "OpenAI API Cost",
                   "x": 18,
-                  "y": 18,
+                  "y": 30,
                   "width": 6,
                   "height": 8,
                   "properties": {
@@ -666,7 +706,7 @@ Resources:
                 {
                   "height": 15,
                   "width": 24,
-                  "y": 32,
+                  "y": 33,
                   "x": 0,
                   "type": "explorer",
                   "properties": {
@@ -723,7 +763,7 @@ Resources:
                   "x": 0,
                   "y": 47,
                   "width": 24,
-                  "height": 12,
+                  "height": 36,
                   "properties": {
                       "query": "SOURCE '/aws/lambda/${AwsResourcePrefix}-api-gateway-handler-${Environment}' | SOURCE '/aws/lambda/${AwsResourcePrefix}-slack-event-processor-${Environment}' | fields @timestamp, @message, @logStream, @log\n| sort @timestamp desc\n| limit 20\n| filter @message like /INFO/",
                       "region": "${AWS::Region}",

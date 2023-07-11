@@ -8,7 +8,7 @@ class KeyValueStore
   end
 
   def set(key:, value:, ttl: (Time.now + 3600).to_i)  # TTL defaults to 1 hour
-    $logger.info("Setting key: #{key} => #{value}, TTL: #{ttl}")
+    $logger.debug("Setting key: #{key} => #{value}, TTL: #{ttl}")
     begin
       @dynamodb.put_item({
         table_name: @table_name,
@@ -25,7 +25,7 @@ class KeyValueStore
   end
   
   def get(key:, &block)
-    $logger.info("Getting key: #{key}")
+    $logger.debug("Getting key: #{key}")
     begin
       result = @dynamodb.get_item({
         table_name: @table_name,
@@ -40,7 +40,7 @@ class KeyValueStore
       else
         $logger.debug("Key not found: #{key}")
         if block_given?
-          $logger.info("Computing value for key: #{key}")
+          $logger.debug("Computing value for key: #{key}")
           value = yield
           set(key:key, value:value)
           value
@@ -50,7 +50,7 @@ class KeyValueStore
       $logger.error "Unable to get item:\n#{e.message}"
       raise e
     end.tap do |value|
-      $logger.info("Returning value: #{value}")
+      $logger.debug("Returning value: #{value}")
     end
   end
 

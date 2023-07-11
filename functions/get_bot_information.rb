@@ -106,7 +106,7 @@ class GetBotInformation < Function
       Configuration::Setting.find(key: arguments['key']).get
     end
   end.tap do |result|
-    $logger.info "Result: #{result.ai}"
+    $logger.debug "Result: #{result.ai}"
   end
 
 end

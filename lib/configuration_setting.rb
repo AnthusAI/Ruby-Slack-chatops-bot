@@ -74,16 +74,20 @@ module Configuration
       0.9
     end
 
+    def get
+      super.to_f
+    end
+
     def set(value:)
       case value
       when /high/i
-        super(value: 1.0)
+        super(value: '1.0')
       when /medium/i
-        super(value: 0.7)
+        super(value: '0.7')
       when /low/i
-        super(value: 0.5)
+        super(value: '0.5')
       when /0\.?\d*/
-        super(value: value.to_f)
+        super(value: value.to_f.to_s)
       else
         super(value: default)
       end
@@ -101,6 +105,10 @@ module Configuration
         true
       when 'yes'
         true
+      when 'enabled'
+        true
+      when 'active'
+        true
       else
         false
       end
@@ -111,6 +119,10 @@ module Configuration
       when /true/i
         super(value: true)
       when /yes/i
+        super(value: true)
+      when /enabled/i
+        super(value: true)
+      when /active/i
         super(value: true)
       else
         super(value: false)
