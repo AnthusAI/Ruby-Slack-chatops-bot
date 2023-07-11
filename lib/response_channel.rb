@@ -5,9 +5,9 @@ require_relative 'configuration_setting'
 class ResponseChannel
 
   def initialize(
+    channel:,
     original_message_timestamp:,
-    slack_access_token:,
-    channel:
+    slack_access_token:
   )
 
     @cloudwatch_metrics = CloudWatchMetrics.new

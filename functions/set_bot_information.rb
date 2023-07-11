@@ -3,7 +3,7 @@ class SetBotInformation < Function
   def definition
     {
       name: name,
-      description: "Set this bot's configuration settings. The 'model' key sets the bot's current model name setting.",
+      description: "Get this bot's configuration setting values.  The 'key' parameter specifies a specific value to set.  The 'model' key sets the bot's current OpenAI model name setting.  The 'temperature' key sets the current OpenAI temperature setting.  The 'status_emojis' key sets whether status emojis are enabled or not.",
       parameters: {
         type: 'object',
         properties: {
@@ -18,7 +18,8 @@ class SetBotInformation < Function
           "value": {
             "type": "string"
           }
-        }
+        },
+        "required": ["key"]
       }
     }
   end

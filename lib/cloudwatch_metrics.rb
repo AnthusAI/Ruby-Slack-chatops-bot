@@ -1,5 +1,6 @@
 require_relative 'helper'
 require 'aws-sdk-cloudwatch'
+require 'active_support/core_ext/integer/time'
 
 class CloudWatchMetrics
 
@@ -29,7 +30,10 @@ class CloudWatchMetrics
   end
 
   def get_metric_sum_over_time(metric_name:, time_window: 3600)
-    $logger.info "Getting average of metric #{metric_name} over the last #{time_window} seconds."
+    # Format time_window as a human-readable string.
+    time_window_string = ActiveSupport::Duration.build(time_window).inspect
+
+    $logger.info "Getting average of metric #{metric_name} over the last #{time_window_string}."
   
     response = @cloudwatch.get_metric_statistics({
       # The namespace of the metric, in this case, the value before "::"

@@ -111,7 +111,6 @@ class SlackEventsAPIHandler
 
       @response_slack_message =
         @response_channel.update_status_emoji(emoji:'eyes')
-      $logger.info("Posted status response to Slack: #{@response_slack_message.ai}")
 
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])

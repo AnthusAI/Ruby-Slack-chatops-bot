@@ -7,14 +7,13 @@ class GetBotInformation < Function
   def definition
     {
       name: name,
-      description: "Get this bot's information about the OpenAI model's integration with Slack by checking relevant configuration setting values, metrics and alarms.  The 'key' parameter is optional and can be used to get a specific value.  The 'status' key returns the bot's status.  The 'model' key returns the bot's current model name setting.",
+      description: "Get this bot's configuration setting values.  The 'key' parameter specifies a specific value to get.  The 'model' key returns the bot's current OpenAI model name setting.  The 'temperature' key returns the current OpenAI temperature setting.  The 'status_emojis' key returns whether status emojis are enabled or not.",
       parameters: {
         type: 'object',
         properties: {
           "key": {
             "type": "string",
             "enum": [
-              "status",
               "model",
               "temperature",
               "status_emojis"
