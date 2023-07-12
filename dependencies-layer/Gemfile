@@ -11,7 +11,7 @@ gem "ruby-openai"
 gem "awesome_print"
 gem "activesupport"
 gem "slack-ruby-client"
-gem "pry"
+gem "mime-types"
 
 group :test do
   gem "rake"

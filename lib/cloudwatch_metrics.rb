@@ -59,4 +59,24 @@ class CloudWatchMetrics
     response.datapoints.map(&:sum).sum
   end
 
+  # This gets a CloudWatch metric widget image and returns the full path of the
+  # temporary file where the image is stored.
+  def get_cloudwatch_metric_widget_image(metric_widget_json:)
+    image_data = @cloudwatch.get_metric_widget_image(
+      metric_widget: metric_widget_json,
+      output_format: 'png'
+    ).metric_widget_image
+  
+    # Create a Tempfile object. This creates a real file in a temporary directory.
+    temp_file = Tempfile.new(['metric_widget_image', '.png'])
+  
+    # Write the image data to the file and close it.
+    temp_file.binmode  # Set file to binary mode
+    temp_file.write(image_data)
+    temp_file.close
+  
+    # Return the full path of the temporary file.
+    temp_file.path
+  end
+
 end

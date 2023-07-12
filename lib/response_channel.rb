@@ -1,4 +1,5 @@
 require 'logger'
+require 'mime/types'
 require_relative 'cloudwatch_metrics'
 require_relative 'configuration_setting'
 
@@ -90,6 +91,21 @@ class ResponseChannel
 
     rescue Slack::Web::Api::Errors::AlreadyReacted => e
       $logger.info("Ignoring error adding reaction to original message: #{e.message}")
+  end
+
+  def upload_file(file_path: , file_name:nil)
+    file_name ||= File.basename(file_path)
+    content_type = MIME::Types.type_for(file_path).first.content_type
+
+    $logger.info("Uploading file #{file_name} to Slack on channel #{@channel}")
+
+    client = Slack::Web::Client.new(token: @slack_access_token)
+  
+    client.files_upload(
+      channels: @channel,
+      file: Faraday::UploadIO.new(file_path, content_type),
+      title: file_name
+    )
   end
 
 end

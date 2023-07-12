@@ -1,4 +1,4 @@
-class SetBotInformation < Function
+class SetBotSetting < Function
 
   def definition
     {

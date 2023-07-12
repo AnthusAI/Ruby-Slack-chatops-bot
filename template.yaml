@@ -245,6 +245,7 @@ Resources:
           Effect: Allow
           Action:
             - cloudwatch:GetMetricStatistics
+            - cloudwatch:GetMetricWidgetImage
           Resource: "*"
         - Sid: CloudWatchPutMetricDataProperty
           Effect: Allow

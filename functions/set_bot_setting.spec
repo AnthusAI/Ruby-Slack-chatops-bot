@@ -7,10 +7,10 @@ ENV['AWS_RESOURCE_NAME'] = 'Slack Bot'
 
 WebMock.allow_net_connect!
 
-RSpec.describe SetBotInformation do
+RSpec.describe SetBotSetting do
   describe '.definition' do
     it 'returns a definition' do
-      definition = SetBotInformation.new.definition
+      definition = SetBotSetting.new.definition
 
       puts "Definition:\n#{definition.ai}"
 
