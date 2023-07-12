@@ -64,6 +64,10 @@ class ResponseChannel
         unit: 'Count'
       )
     end
+  ensure
+    # Upload any pending file attachments, now that the message has been
+    # posted first.
+    upload_pending_file_attachments
   end
 
   def update_status_emoji(emoji:)
@@ -91,6 +95,35 @@ class ResponseChannel
 
     rescue Slack::Web::Api::Errors::AlreadyReacted => e
       $logger.info("Ignoring error adding reaction to original message: #{e.message}")
+  end
+
+  # Accept an attached file and remember it later so that we can include
+  # it in the response message.
+  def attach_file(
+    attachment_key:,
+    file_path:,
+    file_name:nil)
+
+    $logger.info("Attaching file #{file_name} to Slack on channel #{@channel}")
+
+    @attachments ||= {}
+    @attachments[attachment_key] = {
+      file_path: file_path,
+      file_name: file_name
+    }
+  end
+
+  def upload_pending_file_attachments
+    return if @attachments.nil?
+
+    # Upload each file and remove the attachment from the list.
+    @attachments.keys.each do |attachment_key|
+      attachment = @attachments.delete(attachment_key)
+      upload_file(
+        file_path: attachment[:file_path],
+        file_name: attachment[:file_name]
+      )
+    end
   end
 
   def upload_file(file_path: , file_name:nil)

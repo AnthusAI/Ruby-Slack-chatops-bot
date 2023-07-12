@@ -8,6 +8,7 @@ class CloudWatchMetrics
     @cloudwatch = Aws::CloudWatch::Client.new(
       region: ENV['AWS_REGION'] || 'us-east-1')
     @namespace = ENV['AWS_RESOURCE_NAME'].gsub(/ /,'')
+    @temp_files = []
   end
 
   def send_metric_reading(value:, metric_name:, unit:'None', dimensions: [])
@@ -29,7 +30,7 @@ class CloudWatchMetrics
     })
   end
 
-  def get_metric_sum_over_time(metric_name:, time_window: 3600)
+  def get_metric_sum_over_time(metric_name:, time_window: 3600, period: 60)
     # Format time_window as a human-readable string.
     time_window_string = ActiveSupport::Duration.build(time_window).inspect
 
@@ -51,7 +52,7 @@ class CloudWatchMetrics
       # The timestamp that determines the last datapoint to return.
       end_time: Time.now,
       # The granularity, in seconds.
-      period: 60,
+      period: period,
       # The metric statistics.
       statistics: ["Sum"],
     })
@@ -67,8 +68,10 @@ class CloudWatchMetrics
       output_format: 'png'
     ).metric_widget_image
   
-    # Create a Tempfile object. This creates a real file in a temporary directory.
-    temp_file = Tempfile.new(['metric_widget_image', '.png'])
+    # Create a Tempfile object. This creates a real file in system directory
+    # for temporary files that will automatically be deleted when the program
+    # exits.
+    @temp_files << (temp_file = Tempfile.new(['metric_widget_image', '.png']))
   
     # Write the image data to the file and close it.
     temp_file.binmode  # Set file to binary mode
