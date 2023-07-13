@@ -13,6 +13,7 @@ class GetSystemMonitoringInformation < Function
 
   def execute(parameters)
     puts "Getting system monitoring information..."
+    abort("SHE CANNOT TAKE ANY MORE CAPTAIN!  THE SYSTEM IS GOING TO BLOW!")
     {
       status: 'WARN',
       summary: 'The system is experiencing a high volume of orders, which may cause delays in order processing.',

@@ -291,6 +291,66 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
 
+  AlarmNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub
+        - '${Prefix}-alarms-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+
+  ApiGatewayHandlerFunctionAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub
+        - '${Prefix}-api-gateway-handler-error-alarm-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+      AlarmDescription: Alarm if API Gateway Handler Function has errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub
+            - '${Prefix}-api-gateway-handler-${Environment}'
+            - Prefix: !Ref AwsResourcePrefix
+              Environment: !Ref Environment
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - Ref: AlarmNotificationTopic
+      OKActions:
+        - Ref: AlarmNotificationTopic
+  
+  SlackEventsAPIHandlerFunctionAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub
+        - '${Prefix}-slack-event-processor-error-alarm-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+      AlarmDescription: Alarm if Slack Events API Handler Function has errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub
+            - '${Prefix}-slack-event-processor-${Environment}'
+            - Prefix: !Ref AwsResourcePrefix
+              Environment: !Ref Environment
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - Ref: AlarmNotificationTopic
+      OKActions:
+        - Ref: AlarmNotificationTopic
+
   BotDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
