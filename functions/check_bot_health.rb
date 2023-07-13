@@ -10,20 +10,13 @@ class CheckBotHealth < Function
 
   def definition
     description = <<~DESCRIPTION
-      Get this bot's health status about the OpenAI model's integration with Slack by checking relevant CloudWatch metrics and alarms.  This function will also display a CloudWatch metric widget image in the Slack channel along with the text response from the OpenAI model.
-      A time range is required.
+      Get this bot's health status by checking relevant CloudWatch metrics and alarms.  This measures the bot itself, not the system that the bot assists with, so this is about the OpenAI model's integration with Slack.  This function will also display a CloudWatch metric widget image in the Slack channel along with the text response from the OpenAI model.
     
       Example usage:
     
         User: "How are you?"
         Function call: check_bot_health(key: "summary", time_range: "today")
     
-        User: "How have you been recently?"
-        Function call: check_bot_health(key: "summary", time_range: "last_day")
-    
-        User: "How are you now?"
-        Function call: check_bot_health(key: "summary", time_range: "last_hour")
-
         User: "How are your metrics?"
         Function call: check_bot_health(key: "metrics", time_range: "last_hour")
 
@@ -97,16 +90,33 @@ class CheckBotHealth < Function
 
       {
         "summary":
-          [
-            "Number of Slack messages that I sent in the last #{time_ago_string}: #{@@cloudwatch_metrics.get_metric_sum_over_time(
+          (
+            'My current OpenAI model is: ' +
+            Configuration::Model.new.get +
+            "\nNumber of AI-powered Slack messages that I sent in the last " +
+            time_ago_string +
+            ': ' +
+            @@cloudwatch_metrics.get_metric_sum_over_time(
               metric_name: 'Slack Messages Sent',
               time_window: seconds_ago,
-              period: period)}",
-            "Estimated total cost of the OpenAI tokens that I used in the last #{time_ago_string}: USD $#{@@cloudwatch_metrics.get_metric_sum_over_time(
+              period: period).round.to_s +
+            ".\n" +
+            "\nNumber of function responses I computed in the last " +
+            time_ago_string +
+            ': ' +
+            @@cloudwatch_metrics.get_metric_sum_over_time(
+              metric_name: 'Function Responses',
+              time_window: seconds_ago,
+              period: period).round.to_s +
+            ".\n" +
+            "Estimated cost of the OpenAI tokens that I used in the last " +
+            time_ago_string +
+            ': USD $' +
+            @@cloudwatch_metrics.get_metric_sum_over_time(
               metric_name: 'OpenAI Total Token Cost',
               time_window: seconds_ago,
-              period: period).round(2)}"
-          ].join(' '),
+              period: period).round(2).to_s
+          ),
 
         "attachments": "CloudWatch metric widget image attached."
       }
@@ -126,6 +136,20 @@ class CheckBotHealth < Function
                 time_window: seconds_ago,
                 period: period)
           },
+          {
+            "Number of Slack API Calls in the last #{time_ago_string}":
+            @@cloudwatch_metrics.get_metric_sum_over_time(
+                metric_name: 'Slack API Calls',
+                time_window: seconds_ago,
+                period: period)
+          },  
+          {
+            "Number of Slack Reactions Sent in the last #{time_ago_string}":
+            @@cloudwatch_metrics.get_metric_sum_over_time(
+                metric_name: 'Slack Reactions Sent',
+                time_window: seconds_ago,
+                period: period)
+          },  
           {
             "Number of Slack Messages Sent in the last #{time_ago_string}":
             @@cloudwatch_metrics.get_metric_sum_over_time(
