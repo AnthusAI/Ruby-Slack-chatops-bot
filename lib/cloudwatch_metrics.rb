@@ -82,4 +82,18 @@ class CloudWatchMetrics
     temp_file.path
   end
 
+  def check_alarm_status(alarm_name:)
+    $logger.info "Checking status of alarm #{alarm_name}"
+
+    response = @cloudwatch.describe_alarms(alarm_names: [alarm_name])
+    if response.metric_alarms.empty?
+      $logger.error "No alarm found with the name #{alarm_name}"
+      return
+    end
+  
+    state = response.metric_alarms[0].state_value.tap do |state|
+      $logger.info "The state of the alarm #{alarm_name} is #{state}"
+    end
+  end
+
 end

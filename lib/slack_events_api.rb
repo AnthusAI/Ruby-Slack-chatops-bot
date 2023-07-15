@@ -4,7 +4,6 @@ require 'aws-sdk-ssm'
 require 'aws-sdk-secretsmanager'
 require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 require 'active_support'
-require 'slack-ruby-client'
 require_relative 'helper'
 require_relative 'openai_chat_bot'
 require_relative 'key_value_store'
@@ -82,7 +81,7 @@ class SlackEventsAPIHandler
         @slack_event['event']['message']['text']
       else
         @slack_event['event']['text']
-      end
+      end || ''
   end
 
   def message
@@ -137,7 +136,7 @@ class SlackEventsAPIHandler
   end
 
   def event_text
-    message_text = @slack_event['event']['text']
+    message_text = @slack_event['event']['text'] || ''
   end
 
   def event_mentions_me?

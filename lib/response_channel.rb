@@ -1,9 +1,10 @@
 require 'logger'
 require 'mime/types'
+require_relative 'slack_channel'
 require_relative 'cloudwatch_metrics'
 require_relative 'configuration_setting'
 
-class ResponseChannel
+class ResponseChannel < SlackChannel
 
   def initialize(
     channel:,
@@ -11,63 +12,12 @@ class ResponseChannel
     slack_access_token:
   )
 
-    @cloudwatch_metrics = CloudWatchMetrics.new
+    super(channel: channel, slack_access_token: slack_access_token)
 
-    @slack_access_token = slack_access_token
-    @channel = channel
     @original_message_timestamp = original_message_timestamp
     
     @status_emojis = Configuration::StatusEmojis.new.get
     $logger.info("Status emojis are #{@status_emojis ? 'enabled' : 'disabled'}")
-  end
-
-  def send_message(text:)
-    $logger.debug("Sending message to Slack on channel #{@channel}: \"#{text}\"")
-    
-    client = Slack::Web::Client.new(token: @slack_access_token)
-    
-    response =
-      client.chat_postMessage(channel: @channel, text: text).
-        tap do |response|
-          $logger.info(
-            "Sent message to Slack on channel #{@channel}: #{response.inspect}")
-          @cloudwatch_metrics.send_metric_reading(
-            metric_name: "Slack Messages Sent",
-            value: 1,
-            unit: 'Count'
-          )
-        end
-
-    @response_message_timestamp = response['ts']
-  end
-  
-  def update_message(text:)
-    if @response_message_timestamp.nil?
-      $logger.debug("Sending new message since there is no existing message to update.")
-      return send_message(text: text)
-    end
-
-    $logger.debug(
-    "Updating existing message from timestamp #{@response_message_timestamp} in Slack: #{text}")
-  
-    client = Slack::Web::Client.new(token: @slack_access_token)
-  
-    client.chat_update(
-      channel: @channel,
-      text: text,
-      ts: @response_message_timestamp # Timestamp of the message to update
-    ).tap do |response|
-      $logger.debug("Updated message in Slack: #{response.inspect}")
-      @cloudwatch_metrics.send_metric_reading(
-        metric_name: "Slack Messages Updated",
-        value: 1,
-        unit: 'Count'
-      )
-    end
-  ensure
-    # Upload any pending file attachments, now that the message has been
-    # posted first.
-    upload_pending_file_attachments
   end
 
   def update_status_emoji(emoji:)
@@ -95,50 +45,6 @@ class ResponseChannel
 
     rescue Slack::Web::Api::Errors::AlreadyReacted => e
       $logger.info("Ignoring error adding reaction to original message: #{e.message}")
-  end
-
-  # Accept an attached file and remember it later so that we can include
-  # it in the response message.
-  def attach_file(
-    attachment_key:,
-    file_path:,
-    file_name:nil)
-
-    $logger.info("Attaching file #{file_name} to Slack on channel #{@channel}")
-
-    @attachments ||= {}
-    @attachments[attachment_key] = {
-      file_path: file_path,
-      file_name: file_name
-    }
-  end
-
-  def upload_pending_file_attachments
-    return if @attachments.nil?
-
-    # Upload each file and remove the attachment from the list.
-    @attachments.keys.each do |attachment_key|
-      attachment = @attachments.delete(attachment_key)
-      upload_file(
-        file_path: attachment[:file_path],
-        file_name: attachment[:file_name]
-      )
-    end
-  end
-
-  def upload_file(file_path: , file_name:nil)
-    file_name ||= File.basename(file_path)
-    content_type = MIME::Types.type_for(file_path).first.content_type
-
-    $logger.info("Uploading file #{file_name} to Slack on channel #{@channel}")
-
-    client = Slack::Web::Client.new(token: @slack_access_token)
-  
-    client.files_upload(
-      channels: @channel,
-      file: Faraday::UploadIO.new(file_path, content_type),
-      title: file_name
-    )
   end
 
 end

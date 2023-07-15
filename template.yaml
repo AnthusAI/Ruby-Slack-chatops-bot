@@ -246,6 +246,87 @@ Resources:
           Action:
             - cloudwatch:GetMetricStatistics
             - cloudwatch:GetMetricWidgetImage
+            - cloudwatch:DescribeAlarms
+          Resource: "*"
+        - Sid: CloudWatchPutMetricDataProperty
+          Effect: Allow
+          Action:
+            - cloudwatch:PutMetricData
+          Resource: "*"
+
+  HandleAlarmNotifications:
+    Type: AWS::Serverless::Function 
+    Properties:
+      FunctionName: !Sub
+        - '${Prefix}-handle-alarm-notifications-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+      CodeUri: ./
+      Handler: handle_alarm_notifications.handle_alarm_notifications_lambda_handler
+      Runtime: ruby2.7
+      Layers:
+        - !Ref DependenciesLayer
+      Architectures:
+        - x86_64
+      Environment: 
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          AWS_RESOURCE_NAME: !Ref AwsResourceName
+          AWS_RESOURCE_PREFIX: !Ref AwsResourcePrefix
+          RUBYLIB: /opt/ruby/lib
+          BUNDLE_GEMFILE: /opt/ruby/lib/Gemfile
+          GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
+          KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
+          SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
+      Tracing: Active
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref AlarmNotificationTopic
+      Policies:
+      - Statement:
+        - Sid: DynamoDBCrudPolicy
+          Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          Resource: 
+          - !GetAtt KeyValueStoreDynamoDBTable.Arn
+          - !GetAtt SlackConversationHistoryTable.Arn
+        - Sid: SSMGetParameterPolicy
+          Effect: Allow
+          Action:
+          - ssm:GetParameter
+          - ssm:PutParameter
+          Resource: 
+          - !Sub
+            - 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${Prefix}-system-prompt-${Environment}'
+            - Prefix: !Ref AwsResourcePrefix
+              Environment: !Ref Environment
+        - Sid: SecretsManagerGetSecretValuePolicy
+          Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource: 
+            - !Sub
+              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-openai-api-token-${Environment}-*'
+              - Prefix: !Ref AwsResourcePrefix
+                Environment: !Ref Environment
+            - !Sub
+              - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-slack-app-access-token-${Environment}-*'
+              - Prefix: !Ref AwsResourcePrefix
+                Environment: !Ref Environment
+        - Sid: CloudWatchGetMetricStatisticsProperty
+          Effect: Allow
+          Action:
+            - cloudwatch:GetMetricStatistics
+            - cloudwatch:GetMetricWidgetImage
+            - cloudwatch:DescribeAlarms
           Resource: "*"
         - Sid: CloudWatchPutMetricDataProperty
           Effect: Allow
@@ -324,6 +405,7 @@ Resources:
         - Ref: AlarmNotificationTopic
       OKActions:
         - Ref: AlarmNotificationTopic
+      TreatMissingData: ignore
   
   SlackEventsAPIHandlerFunctionAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -350,6 +432,42 @@ Resources:
         - Ref: AlarmNotificationTopic
       OKActions:
         - Ref: AlarmNotificationTopic
+      TreatMissingData: ignore
+  
+  HandleAlarmNotificationsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub
+        - '${Prefix}-handle-alarm-notifications-alarm-${Environment}'
+        - Prefix: !Ref AwsResourcePrefix
+          Environment: !Ref Environment
+      AlarmDescription: Triggered when HandleAlarmNotifications function encounters errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub
+            - '${Prefix}-alarm-notification-handler-${Environment}'
+            - Prefix: !Ref AwsResourcePrefix
+              Environment: !Ref Environment
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - Ref: AlarmNotificationTopic
+      OKActions:
+        - Ref: AlarmNotificationTopic
+      TreatMissingData: ignore
+
+  HandleAlarmNotificationsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt HandleAlarmNotifications.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: 'sns.amazonaws.com'
+      SourceArn: !Ref AlarmNotificationTopic
 
   BotDashboard:
     Type: AWS::CloudWatch::Dashboard

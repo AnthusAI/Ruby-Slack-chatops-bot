@@ -229,6 +229,28 @@ class CheckBotHealth < Function
           
         ]
       }
+
+    when 'alarms'
+    
+      {
+        "alarms": {
+          "lambda_alerts": [
+            {
+              "name": name = "#{ENV['AWS_RESOURCE_PREFIX']}-api-gateway-handler-error-alarm-#{ENV['ENVIRONMENT']}",
+              "status": @@cloudwatch_metrics.check_alarm_status(alarm_name: name)
+            },
+            {
+              "name": name = "#{ENV['AWS_RESOURCE_PREFIX']}-slack-event-processor-error-alarm-#{ENV['ENVIRONMENT']}",
+              "status": @@cloudwatch_metrics.check_alarm_status(alarm_name: name)
+            },
+            {
+              "name": name = "#{ENV['AWS_RESOURCE_PREFIX']}-handle-alarm-notifications-alarm-#{ENV['ENVIRONMENT']}",
+              "status": @@cloudwatch_metrics.check_alarm_status(alarm_name: name)
+            }
+          ]
+        }
+      }
+
     end.tap do |result|
       $logger.debug "Result: #{result.ai}"
     end
