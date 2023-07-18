@@ -1,6 +1,8 @@
 require_relative 'spec_helper'
 require_relative 'slack_events_api'
 
+ENV['SLACK_APP_ID'] = 'A05D7UH7GHH'
+
 describe 'SlackEventsAPIHandler' do
   let(:channel_id) { 'C01HYM7S9PD' }
   let(:bot_id) { 'U01J218HDYS' }
@@ -9,20 +11,31 @@ describe 'SlackEventsAPIHandler' do
   let(:bot_message) { 'Hello, I am a bot.' }
   let(:user1_message) { 'Hello, bot.' }
   let(:user2_message) { 'Hello, everyone.' }
-  let(:dynamodb_client) { instance_double(Aws::DynamoDB::Client) }
-  let(:kv_store) { KeyValueStore.new(dynamodb_client: dynamodb_client) }
+  let(:kv_store) { instance_double(KeyValueStore) }
   let(:bot_id_cache_response) { instance_double(Aws::DynamoDB::Types::GetItemOutput) }
+  let(:ssm_client) { instance_double(Aws::SSM::Client) }
+  let(:secretsmanager_client) { instance_double(Aws::SecretsManager::Client) }
+  let(:cloudwatch_metrics) { instance_double(CloudWatchMetrics) }
 
   before do
-    allow_any_instance_of(Aws::SSM::Client).to receive(:get_parameter) do |_, args|
-      if args[:name].include?('app_id')
-        double(parameter: double(value: 'A05D7UH7GHH'))
-      elsif args[:name].include?('user_id')
-        double(parameter: double(value: 'U05D815D3PD'))
-      elsif args[:name].include?('access_token')
-        double(parameter: double(value: 'xoxb-your-token'))
-      end
-    end
+    allow(KeyValueStore).to receive(:new).and_return(kv_store)
+    allow(kv_store).to receive(:get).with(key: 'app_id').and_return('A05D7UH7GHH')
+    allow(kv_store).to receive(:get).with(key: 'user_id').and_return('U05D815D3PD')
+    allow(kv_store).to receive(:get).with(key: 'access_token').and_return('xoxb-your-token')
+    
+    allow(Aws::SecretsManager::Client).to receive(:new).
+      and_return(secretsmanager_client)
+    allow(secretsmanager_client).to receive(:get_secret_value).with(
+        secret_id: 'Babulus-slack-app-access-token-development'
+      ).and_return(
+        instance_double(
+          'Aws::SecretsManager::Types::GetSecretValueResponse',
+          secret_string: 'DEADBEEF')
+      )
+
+    allow(cloudwatch_metrics).to receive(:send_metric_reading)
+    allow(CloudWatchMetrics).to receive(:new).and_return(cloudwatch_metrics)
+    
     stub_request(:get, 'https://slack.com/api/bots.info?bot=U01J218HDYS')
       .to_return(
         status: 200,
@@ -163,11 +176,47 @@ describe 'SlackEventsAPIHandler' do
       )
 
     allow(KeyValueStore).to receive(:new).and_return(kv_store)
-    allow(dynamodb_client).to receive(:get_item).and_return(bot_id_cache_response)
     allow(bot_id_cache_response).to receive(:item).and_return({
       'key' => 'bot_id',
       'value' => bot_id
     })
+
+    allow(kv_store).to receive(:get).
+      with(key: 'user_profiles/U01J218HDYS').
+      and_return({
+        'display_name' => 'john',
+        'display_name_normalized' => 'john',
+        'first_name' => 'john',
+        'last_name' => 'smith',
+        'real_name' => 'John Smith',
+        'real_name_normalized' => 'John Smith',
+        'status_text' => 'Watching cold brew steep',
+        'title' => 'Head of Coffee Production'
+      })
+    allow(kv_store).to receive(:get).
+      with(key: 'user_profiles/U01HYM5LRMQ').
+      and_return({
+        'display_name' => 'dale',
+        'display_name_normalized' => 'dale',
+        'first_name' => 'dale',
+        'last_name' => 'smith',
+        'real_name' => 'Dale Smith',
+        'real_name_normalized' => 'Dale Smith',
+        'status_text' => 'Watching someone watch cold brew steep',
+        'title' => 'Assistant to the Head of Coffee Production'
+      })
+    allow(kv_store).to receive(:get).
+      with(key: 'user_profiles/U01HZ9PA37T').
+      and_return({
+        'display_name' => 'daryl',
+        'display_name_normalized' => 'daryl',
+        'first_name' => 'daryl',
+        'last_name' => 'smith',
+        'real_name' => 'Daryl Smith',
+        'real_name_normalized' => 'Daryl Smith',
+        'status_text' => 'Watching someone watch someone watch cold brew steep',
+        'title' => 'Assistant to the Assistant of the Head of Coffee Production'
+      })
   end
 
   let(:url_verification_event) do
@@ -261,7 +310,7 @@ describe 'SlackEventsAPIHandler' do
 
     it 'should call app_mention for app_mention events' do
       slack_events_api = SlackEventsAPIHandler.new(app_mention_event)
-      expect(slack_events_api).to receive(:app_mention)
+      expect(slack_events_api).to receive(:message)
       slack_events_api.send(:dispatch)
     end
     
@@ -278,7 +327,7 @@ describe 'SlackEventsAPIHandler' do
 
   describe '#message' do
 
-    it 'should hangle message events' do
+    it 'should handle message events' do
       slack_events_api = SlackEventsAPIHandler.new(message_event)
       slack_events_api.dispatch
     end
@@ -324,16 +373,34 @@ describe 'SlackEventsAPIHandler' do
   end
 
   describe '#get_conversation_history' do
+
+    let (:conversation_history) { instance_double(SlackConversationHistory) }
   
     it 'fetches conversation history from a channel' do
+      allow(SlackConversationHistory).to receive(:new). 
+        and_return(conversation_history)
+      allow(conversation_history).to receive(:fetch_from_slack)
+      allow(conversation_history).to receive(:get_recent_messages).
+        and_return([
+          { "channelId" => channel_id,
+            "ts" => 1627300000,
+            "userId" => bot_id,   "message" => bot_message },
+          { "channelId" => channel_id,
+            "ts" => 1627300001,
+            "userId" => user1_id, "message" => user1_message },
+          { "channelId" => channel_id,
+            "ts" => 1627300002,
+            "userId" => user2_id, "message" => user2_message }
+        ])
+
       history = SlackEventsAPIHandler.new(message_event.to_json).
-        send(:get_conversation_history, channel_id)
+        get_conversation_history(channel_id)
       expect(history.length).to eq(3)
-      expect(history[0]['user_id']).to eq(bot_id)
+      expect(history[0]['userId']).to eq(bot_id)
       expect(history[0]['message']).to eq(bot_message)
-      expect(history[1]['user_id']).to eq(user1_id)
+      expect(history[1]['userId']).to eq(user1_id)
       expect(history[1]['message']).to eq(user1_message)
-      expect(history[2]['user_id']).to eq(user2_id)
+      expect(history[2]['userId']).to eq(user2_id)
       expect(history[2]['message']).to eq(user2_message)
     end
   end

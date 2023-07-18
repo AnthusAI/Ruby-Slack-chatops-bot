@@ -3,19 +3,36 @@ require 'aws-sdk-sqs'
 require_relative 'lib/spec_helper'
 require_relative 'api_gateway'
 
+ENV['AWS_RESOURCE_NAME'] = 'Babulus'
+
 describe 'lambda_handler' do
-  let(:logger) { Logger.new(STDOUT) }
+  let(:logger) { $logger }
   let(:ssm_client) { instance_double(Aws::SSM::Client) }
   let(:sqs_client) { instance_double(Aws::SQS::Client) }
-
+  let(:cloudwatch_client) { instance_double(Aws::CloudWatch::Client) }
+  let(:secretsmanager_client) { instance_double(Aws::SecretsManager::Client) }
+  
   before do
     allow(Logger).to receive(:new).and_return(logger)
     allow(Aws::SSM::Client).to receive(:new).and_return(ssm_client)
-        allow(ssm_client).to receive(:get_parameter).and_return(instance_double('Aws::SSM::Types::GetParameterResult',
-          parameter: instance_double(
-            'Aws::SSM::Types::Parameter', value: 'test_token'
-          )))
+    allow(Aws::SecretsManager::Client).to receive(:new).and_return(secretsmanager_client)
+    allow(ssm_client).to receive(:get_parameter).and_return(
+      instance_double('Aws::SSM::Types::GetParameterResult',
+        parameter: instance_double(
+          'Aws::SSM::Types::Parameter', value: 'test_token'
+        )
+      )
+    )
     allow(Aws::SQS::Client).to receive(:new).and_return(sqs_client)
+    allow(Aws::CloudWatch::Client).to receive(:new).and_return(cloudwatch_client)
+
+    allow(secretsmanager_client).to receive(:get_secret_value).with(
+      secret_id: 'Babulus-slack-app-access-token-development'
+    ).and_return(
+      instance_double(
+        'Aws::SecretsManager::Types::GetSecretValueResponse',
+        secret_string: 'DEADBEEF')
+    )
   end
 
   context 'when event type is url_verification' do
@@ -32,10 +49,8 @@ describe 'lambda_handler' do
       allow(logger).to receive(:info)
       expect(logger).to receive(:info).with(/URL verification/)
       response = api_gateway_lambda_handler(event: event, context: {})
-      expect(response).to eq({
-        statusCode: 200,
-        body: 'test_challenge'
-      })
+      expect(response[:statusCode]).to eq(200)
+      expect(response[:body]).to eq('test_challenge')
     end
   end
 
@@ -54,25 +69,26 @@ describe 'lambda_handler' do
     before do
       allow(sqs_client).to receive(:send_message).and_return(true)
       allow_any_instance_of(SlackEventsAPIHandler).to receive(
-        :event_needs_processing?).and_return(true)
+        :event_needs_processing?
+      ).and_return(true)
     end
 
     it 'responds with Message received' do
       allow(logger).to receive(:info)
       expect(logger).to receive(:info).with(/Enqueing SQS message/)
       response = api_gateway_lambda_handler(event: event, context: {})
-      expect(response).to eq({
-        statusCode: 200,
-        body: 'Message received.'
-      })
+      expect(response[:statusCode]).to eq(200)
+      expect(response[:body]).to eq('Message received.')
     end
 
     it 'enqueues message for processing' do
-      expect(sqs_client).to receive(:send_message).with({
-        queue_url: ENV['SQS_QUEUE_URL'],
-        message_body: event['body'],
-        message_group_id: nil
-      })
+      expect(sqs_client).to receive(:send_message).with(
+        hash_including(
+          queue_url: ENV['SQS_QUEUE_URL'],
+          message_body: event['body'],
+          message_group_id: nil
+        )
+      )
       api_gateway_lambda_handler(event: event, context: {})
     end
   end

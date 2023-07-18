@@ -9,7 +9,7 @@ def handle_alarm_notifications_lambda_handler(event:, context:)
   $logger.info("Handling alarm notifications:\n#{JSON.pretty_generate(event)}")
 
   environment =         ENV['ENVIRONMENT'] || 'development'
-  aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
+  aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'Babulus'
   secretsmanager_client = Aws::SecretsManager::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
 
   secret_name = "#{aws_resource_prefix}-slack-app-access-token-#{environment}"

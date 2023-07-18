@@ -1,43 +1,31 @@
 require_relative '../lib/spec_helper.rb'
-require_relative '../lib/function.rb'
-require_relative 'get_bot_information.rb'
-
-ENV['ENVIRONMENT'] = 'development'
-ENV['AWS_RESOURCE_NAME'] = 'Slack Bot'
-
-WebMock.allow_net_connect!
+require_relative 'get_bot_setting.rb'
+require 'aws-sdk-dynamodb'
 
 RSpec.describe GetBotSetting do
-
   let(:table_name) { 'TestTable' }
-  
+  let(:key_value_store) { instance_double(KeyValueStore) }
+  let(:dynamodb_client) { Aws::DynamoDB::Client.new(stub_responses: true) }
+
   before do
     ENV['KEY_VALUE_STORE_TABLE'] = table_name
+    allow(Aws::DynamoDB::Client).to receive(:new).and_return(dynamodb_client)
   end
 
   describe '.definition' do
     it 'returns a definition' do
       definition = GetBotSetting.new.definition
-
-      puts "Definition:\n#{definition.ai}"
-
-      expect(definition[:name]).to eq 'get_bot_information'
+      expect(definition[:name]).to eq 'get_bot_setting'
     end
   end
 
   describe '.execute' do
-
-    it 'gets metric statistics' do
-      result = GetBotSetting.new.execute({})
-
-      puts "Result:\n#{result.ai}"
-    end
-
     it 'gets the current model setting' do
-      result = GetBotSetting.new.execute({'key' => 'model'})
-    
-      puts "Result:\n#{result.ai}"
+      allow_any_instance_of(KeyValueStore).
+        to receive(:get).with(key: 'model').
+        and_return('your_value')
+      result = GetBotSetting.new.execute({ 'key' => 'model' })
+      expect(result).to eq( 'your_value' )
     end
-    
   end
 end

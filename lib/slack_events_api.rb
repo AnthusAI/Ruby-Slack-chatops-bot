@@ -20,7 +20,7 @@ class SlackEventsAPIHandler
     @cloudwatch_metrics = CloudWatchMetrics.new
     
     environment =         ENV['ENVIRONMENT'] || 'development'
-    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
+    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'Babulus'
     @app_id =             ENV['SLACK_APP_ID']
     @user_profiles =      {}
 
@@ -62,7 +62,7 @@ class SlackEventsAPIHandler
     when 'message'
       message unless message_subtype.eql? 'message_changed'
     when 'app_mention'
-      event_text
+      message unless message_subtype.eql? 'message_changed'
     else
       # Handle other event types if necessary
     end
@@ -161,9 +161,13 @@ class SlackEventsAPIHandler
   end
 
   def event_is_from_me?
-    event_is_from_me = (!event_app_id.blank?) and (event_app_id == @app_id)
-    $logger.debug("is \"#{event_app_id}\" not blank and also the ID of this app, \"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
-    event_is_from_me
+    (!event_app_id.blank?) and (event_app_id == @app_id).
+      tap do |event_is_from_me|
+        $logger.debug(
+          "is \"#{event_app_id}\" not blank and also " +
+          "the ID of this app, " +
+          "\"#{@app_id}\"?  #{event_is_from_me ? 'Yes!' : 'No.'}")
+      end
   end
 
   def event_is_direct_message?

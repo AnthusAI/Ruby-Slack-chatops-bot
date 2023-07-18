@@ -12,7 +12,7 @@ class SlackConversationHistory
     @cloudwatch_metrics = CloudWatchMetrics.new
 
     environment =         ENV['ENVIRONMENT'] || 'development'
-    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
+    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'Babulus'
 
     # Get the Slack app access token from AWS Secrets Manager.
     # (CloudFormation cannot create SSM SecureString parameters.)

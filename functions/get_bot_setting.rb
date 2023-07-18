@@ -1,6 +1,4 @@
-require 'aws-sdk-cloudwatch'
-require_relative '../lib/cloudwatch_metrics'
-require_relative '../lib/configuration_setting'
+require_relative '../lib/helper.rb'
 
 class GetBotSetting < Function
 
@@ -26,8 +24,6 @@ class GetBotSetting < Function
   end
 
   def execute(arguments)
-
-    cloudwatch_metrics = CloudWatchMetrics.new
 
     $logger.info "Getting bot setting information: #{arguments.ai}"
 

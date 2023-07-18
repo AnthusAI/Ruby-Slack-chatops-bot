@@ -1,3 +1,5 @@
+require_relative '../lib/helper.rb'
+
 class SetBotSetting < Function
 
   def definition

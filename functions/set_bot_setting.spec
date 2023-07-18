@@ -1,6 +1,5 @@
 require_relative '../lib/spec_helper.rb'
-require_relative '../lib/function.rb'
-require_relative 'set_bot_information.rb'
+require_relative 'set_bot_setting.rb'
 
 ENV['ENVIRONMENT'] = 'development'
 ENV['AWS_RESOURCE_NAME'] = 'Slack Bot'
@@ -14,7 +13,7 @@ RSpec.describe SetBotSetting do
 
       puts "Definition:\n#{definition.ai}"
 
-      expect(definition[:name]).to eq 'set_bot_information'
+      expect(definition[:name]).to eq 'set_bot_setting'
     end
   end
 

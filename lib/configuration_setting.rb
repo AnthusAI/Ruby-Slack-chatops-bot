@@ -8,6 +8,7 @@ module Configuration
 
     def initialize(key: nil)
       @key = key
+      @key_value_store = KeyValueStore.new
     end
 
     def self.find(key:)
@@ -28,14 +29,15 @@ module Configuration
     end
 
     def get
-      KeyValueStore.new.get(key: computed_key) do
+      $logger.debug "Getting computed key: #{computed_key}"
+      @key_value_store.get(key: computed_key) do
         default
       end
     end
 
     def set(value:)
       $logger.debug "Setting #{computed_key} to #{value}"
-      KeyValueStore.new.set(key: computed_key, value: value)
+      @key_value_store.set(key: computed_key, value: value)
       {
         key: computed_key,
         value: value

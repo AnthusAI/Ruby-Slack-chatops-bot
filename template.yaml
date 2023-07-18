@@ -15,7 +15,7 @@ Parameters:
   AwsResourcePrefix:
     Description: 'The name prefix for resources related to the app.'
     Type: 'String'
-    Default: 'slack-bot'
+    Default: 'Babulus'
   SlackAppId:
     Description: 'Your App ID for your Slack app.'
     Type: 'String'

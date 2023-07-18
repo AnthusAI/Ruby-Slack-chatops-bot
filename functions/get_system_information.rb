@@ -12,7 +12,6 @@ class GetSystemMonitoringInformation < Function
   end
 
   def execute(parameters)
-    abort("SHE CANNOT TAKE ANY MORE CAPTAIN!") if rand(100) < 50
     {
       status: 'WARN',
       summary: 'The system is experiencing a high volume of orders, which may cause delays in order processing.',

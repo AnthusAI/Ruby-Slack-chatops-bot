@@ -3,86 +3,98 @@ require_relative 'openai_chat_bot'
 
 describe 'OpenAI' do
   let(:slack_events_api_handler) { instance_double('SlackEventsAPIHandlerHandler') }
+  let(:response_channel) { instance_double(ResponseChannel) }
   let(:conversation_history) {
     JSON.parse(
       <<~JSON
         [
           {
-            "user_id": "U38CHGBLL",
+            "userId": "U38CHGBLL",
             "user_profile": {
               "real_name": "ryan"
             },
-            "message": "Excellent!"
+            "message": "Excellent!",
+            "ts": 1689690185
           },
           {
-            "user_id": "U05D815D3PD",
+            "userId": "U05D815D3PD",
             "user_profile": {
               "real_name": "Ticket Driver Copilot"
             },
-            "message": "No, there are no emergencies at the moment.  All systems are operating nominally."
+            "message": "No, there are no emergencies at the moment.  All systems are operating nominally.",
+            "ts": 1689690179
           },
           {
-            "user_id": "U38CHGBLL",
+            "userId": "U38CHGBLL",
             "user_profile": {
               "real_name": "ryan"
             },
-            "message": "Nice! Is anything on fire?"
+            "message": "Nice! Is anything on fire?",
+            "ts": 1689690173
           },
           {
-            "user_id": "U05D815D3PD",
+            "userId": "U05D815D3PD",
             "user_profile": {
               "real_name": "Ticket Driver Copilot"
             },
-            "message": "That sounds intriguing! I've been monitoring our metrics and trying to improve our performance."
+            "message": "That sounds intriguing! I've been monitoring our metrics and trying to improve our performance.",
+            "ts": 1689690166
           },
           {
-            "user_id": "U38CHGBLL",
+            "userId": "U38CHGBLL",
             "user_profile": {
               "real_name": "ryan"
             },
-            "message": "I've been diving into machine learning applications. It's been challenging but fascinating."
+            "message": "I've been diving into machine learning applications. It's been challenging but fascinating.",
+            "ts": 1689690158
           },
           {
-            "user_id": "U05D815D3PD",
+            "userId": "U05D815D3PD",
             "user_profile": {
               "real_name": "Ticket Driver Copilot"
             },
-            "message": "Ah, the joys of programming. Anything you've been working on lately?"
+            "message": "Ah, the joys of programming. Anything you've been working on lately?",
+            "ts": 1689690151
           },
           {
-            "user_id": "U38CHGBLL",
+            "userId": "U38CHGBLL",
             "user_profile": {
               "real_name": "ryan"
             },
-            "message": "Nothing out of the ordinary. Just the usual algorithms and data analysis."
+            "message": "Nothing out of the ordinary. Just the usual algorithms and data analysis.",
+            "ts": 1689690144
           },
           {
-            "user_id": "U05D815D3PD",
+            "userId": "U05D815D3PD",
             "user_profile": {
               "real_name": "Ticket Driver Copilot"
             },
-            "message": "Same here, just enjoying a quiet moment. Any exciting news?"
+            "message": "Same here, just enjoying a quiet moment. Any exciting news?",
+            "ts": 1689690136
           },
           {
-            "user_id": "U38CHGBLL",
+            "userId": "U38CHGBLL",
             "user_profile": {
               "real_name": "ryan"
             },
-            "message": "Not too bad, just passing the time. How about you?"
+            "message": "Not too bad, just passing the time. How about you?",
+            "ts": 1689690128
           },
           {
-            "user_id": "U05D815D3PD",
+            "userId": "U05D815D3PD",
             "user_profile": {
               "real_name": "Ticket Driver Copilot"
             },
-            "message": "Hey, how's it going?"
+            "message": "Hey, how's it going?",
+            "ts": 1689690121
           },
           {
-            "user_id": "U38CHGBLL",
+            "userId": "U38CHGBLL",
             "user_profile": {
               "real_name": "ryan"
             },
-            "message": "Hi, bot!"
+            "message": "Hi, bot!",
+            "ts": 1689690114
           }
 
         ]
@@ -90,21 +102,43 @@ describe 'OpenAI' do
     )
   }
   let(:ssm_client) { instance_double(Aws::SSM::Client) }
+  let(:secretsmanager_client) { instance_double(Aws::SecretsManager::Client) }
+  let(:default_openai_system_prompt) {
+    File.read(File.join(__dir__, '..', 'default_openai_system_prompt.txt'))
+  }
 
   before do
     allow(Aws::SSM::Client).to receive(:new).and_return(ssm_client)
-    allow(ssm_client).to receive(:get_parameter).and_return(instance_double('Aws::SSM::Types::GetParameterResult',
+    allow(ssm_client).to receive(:get_parameter).
+      with(name: 'Babulus-system-prompt-development').
+      and_return(instance_double('Aws::SSM::Types::GetParameterResult',
       parameter: instance_double(
-        'Aws::SSM::Types::Parameter', value: 'test_token'
+        'Aws::SSM::Types::Parameter', value: default_openai_system_prompt
       )))
+    allow(Aws::SecretsManager::Client).to receive(:new).
+      and_return(secretsmanager_client)
     allow(slack_events_api_handler).
       to receive(:user_id).and_return('U05D815D3PD')
+    allow(secretsmanager_client).to receive(:get_secret_value).with(
+        secret_id: 'Babulus-openai-api-token-development'
+      ).and_return(
+        instance_double(
+          'Aws::SecretsManager::Types::GetSecretValueResponse',
+          secret_string: 'DEADBEEF')
+      )
+    allow_any_instance_of(KeyValueStore).
+      to receive(:get).with(key: 'model').
+      and_return('gpt-3.5-turbo-0613')
+    allow_any_instance_of(KeyValueStore).
+      to receive(:get).with(key: 'temperature').
+      and_return('0.5')
   end
 
   describe '#build_chat_messages_list' do
     before(:each) do
       @messages_list = GPT.new(
-        slack_events_api_handler: slack_events_api_handler
+        slack_events_api_handler: slack_events_api_handler,
+        response_channel: response_channel
       ).build_chat_messages_list(conversation_history)
     end
     
@@ -114,11 +148,13 @@ describe 'OpenAI' do
 
     it 'includes the system prompt as the first message' do
       expect(@messages_list[0][:content]).to eq(
-        File.read(File.join(__dir__, '..', 'bot', 'system_prompt.txt')))
+        default_openai_system_prompt)
     end
 
     it 'lists messages in chronological order' do
-      expect(@messages_list[1][:content]).to eq("Hi, bot!")
+      expect(@messages_list[1][:content]).
+        # Example: "TUE JUL 18  2:21 PM - ryan: Hi, bot!"
+        to match(/^([A-Z]{3} [A-Z]{3} \d{2}\s{2}\d{1,2}:\d{2} [AP]M) - ([a-z]+): (.*)$/)
     end
 
     it 'identifies user messages as "user" messages' do
@@ -138,7 +174,8 @@ describe 'OpenAI' do
   describe '#estimate_tokens' do
     it 'truncates the conversation history based on estimating token length' do
       @messages_list = GPT.new(
-        slack_events_api_handler: slack_events_api_handler
+        slack_events_api_handler: slack_events_api_handler,
+        response_channel: response_channel
       ).build_chat_messages_list(lorem_ipsum_conversation)      
     
       expect @messages_list.length < sample_lines.length
@@ -146,7 +183,8 @@ describe 'OpenAI' do
 
     it 'keeps the recent ones and disards the old ones' do
       @messages_list = GPT.new(
-        slack_events_api_handler: slack_events_api_handler
+        slack_events_api_handler: slack_events_api_handler,
+        response_channel: response_channel
       ).build_chat_messages_list(lorem_ipsum_conversation)      
     
       expect @messages_list.first[:content].include? "Lorem ipsum" 
@@ -164,7 +202,8 @@ def lorem_ipsum_conversation
       "user_profile" => {
         "real_name" => ["Ticket Driver Copilot", "ryan"].sample
       },
-      'message' => line
+      'message' => line,
+      'ts' => Time.now.to_i
     }
   end
 end

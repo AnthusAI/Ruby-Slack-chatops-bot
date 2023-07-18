@@ -37,10 +37,10 @@ class GPT
     @slack_events_api_handler = slack_events_api_handler
     @response_channel = response_channel
 
-    @function = Function.load(response_channel: response_channel)
+    Function.load(response_channel: response_channel)
 
-    environment =         ENV['ENVIRONMENT'] || 'development'
-    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'slack-bot'
+    aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'Babulus'
+    environment =         ENV['ENVIRONMENT']         || 'development'
 
     ssm_client = Aws::SSM::Client.new(region: ENV['AWS_REGION'] || 'us-east-1')
 
@@ -254,7 +254,7 @@ class GPT
             # Get the model from the class instance.
             model: open_ai_model_name,
             messages: conversation_history,
-            functions: @function.definitions,
+            functions: Function.definitions,
             function_call: "auto",
             temperature: temperature,
         }).tap do |response|

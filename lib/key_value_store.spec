@@ -3,12 +3,12 @@ require_relative 'key_value_store'
 
 RSpec.describe KeyValueStore do
   let(:dynamodb_client) { instance_double(Aws::DynamoDB::Client) }
-  let(:table_name) { 'TestTable' }
-  let(:store) { KeyValueStore.new }
-  
+  let(:table_name) { 'babulus-key-value-store-development' }
+
   before do
     allow(Aws::DynamoDB::Client).to receive(:new).and_return(dynamodb_client)
-    ENV['KEY_VALUE_STORE'] = table_name
+    ENV['KEY_VALUE_STORE_TABLE'] = table_name
+    @store = KeyValueStore.new
   end
 
   describe '#set' do
@@ -26,7 +26,7 @@ RSpec.describe KeyValueStore do
         }
       ))
       
-      store.set(key:key, value:value, ttl: ttl)
+      @store.set(key:key, value:value, ttl: ttl)
     end
   end
 
@@ -40,7 +40,7 @@ RSpec.describe KeyValueStore do
       end
         
       it 'returns the value' do
-        expect(store.get(key:key)).to eq(value)
+        expect(@store.get(key:key)).to eq(value)
       end
     end
       
@@ -63,13 +63,13 @@ RSpec.describe KeyValueStore do
             }
           ))
   
-          expect(store.get(key:key) { computed_value }).to eq(computed_value)
+          expect(@store.get(key:key) { computed_value }).to eq(computed_value)
         end
       end
         
       context 'and no block is provided' do
         it 'returns nil' do
-          expect(store.get(key:key)).to be_nil
+          expect(@store.get(key:key)).to be_nil
         end
       end
     end

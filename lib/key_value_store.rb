@@ -2,9 +2,12 @@ require 'aws-sdk-dynamodb'
 require_relative 'helper'
 
 class KeyValueStore
-  def initialize(dynamodb_client: nil)
-    @dynamodb = dynamodb_client || Aws::DynamoDB::Client.new
+  def initialize
     @table_name = ENV['KEY_VALUE_STORE_TABLE']
+    raise 'No table name set' unless @table_name
+
+    @dynamodb =
+      Aws::DynamoDB::Client.new(:region => ENV['AWS_REGION'] || 'us-east-1')
   end
 
   def set(key:, value:, ttl: (Time.now + 3600).to_i)  # TTL defaults to 1 hour
