@@ -30,6 +30,6 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
     - name: Bundle install
       run: |
-        bundle install --gemfile=dependencies-layer/Gemfile --jobs 4 --retry 3
+        bundle install --gemfile=$GITHUB_WORKSPACE/dependencies-layer/Gemfile --jobs 4 --retry 3
     - name: Run tests
       run: bundle exec rake spec
