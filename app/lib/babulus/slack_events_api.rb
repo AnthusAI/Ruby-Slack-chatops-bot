@@ -4,19 +4,14 @@ require 'aws-sdk-ssm'
 require 'aws-sdk-secretsmanager'
 require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 require 'active_support'
-require_relative 'helper'
-require_relative 'openai_chat_bot'
-require_relative 'key_value_store'
-require_relative 'slack_conversation_history'
-require_relative 'cloudwatch_metrics'
-require_relative 'response_channel'
+require 'babulus'
 
 class SlackEventsAPIHandler
   attr_reader :app_id
 
   def initialize(slack_event)
     @slack_event = JSON.parse(slack_event)
-    $logger.debug("Handling Slack event:\n#{slack_event.ai}")
+    $logger.debug("Handling Slack event:\n#{JSON.pretty_generate(slack_event)}")
     @cloudwatch_metrics = CloudWatchMetrics.new
     
     environment =         ENV['ENVIRONMENT'] || 'development'
@@ -86,7 +81,7 @@ class SlackEventsAPIHandler
 
   def message
     $logger.info("Slack message event on channel #{@slack_event['event']['channel']} with text: \"#{message_text}\"")
-    $logger.debug("Slack message event:\n#{@slack_event['event'].ai}")
+    $logger.debug("Slack message event:\n#{JSON.pretty_generate(@slack_event['event'])}")
 
     @cloudwatch_metrics.send_metric_reading(
       metric_name: "Slack Messages Received",
@@ -114,7 +109,7 @@ class SlackEventsAPIHandler
       conversation_history = get_conversation_history(
         @slack_event['event']['channel'])
 
-      $logger.debug "Conversation history:\n#{conversation_history.ai}"
+      $logger.debug "Conversation history:\n#{JSON.pretty_generate(conversation_history)}"
 
       gpt = GPT.new(
         slack_events_api_handler: self,
@@ -194,7 +189,7 @@ class SlackEventsAPIHandler
     messages = history.get_recent_messages(100)
 
     messages.map do |message|
-      $logger.debug("Processing message:\n#{message.ai}")
+      $logger.debug("Processing message:\n#{JSON.pretty_generate(message)}")
       message.merge(
         'user_profile' => get_user_profile(message['userId']))
     end

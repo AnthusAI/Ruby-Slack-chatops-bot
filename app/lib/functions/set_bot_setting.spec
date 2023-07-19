@@ -1,4 +1,5 @@
-require_relative '../lib/spec_helper.rb'
+require 'babulus/spec_helper'
+
 require_relative 'set_bot_setting.rb'
 
 ENV['ENVIRONMENT'] = 'development'
@@ -11,7 +12,7 @@ RSpec.describe SetBotSetting do
     it 'returns a definition' do
       definition = SetBotSetting.new.definition
 
-      puts "Definition:\n#{definition.ai}"
+      puts "Definition:\n#{JSON.pretty_generate(definition)}"
 
       expect(definition[:name]).to eq 'set_bot_setting'
     end

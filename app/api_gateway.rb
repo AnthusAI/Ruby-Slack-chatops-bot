@@ -1,10 +1,11 @@
 require 'json'
 require 'aws-sdk-sqs'
-require_relative 'lib/helper'
-require_relative 'lib/slack_events_api'
+
+$LOAD_PATH.unshift('./lib/')
+require 'babulus'
 
 def api_gateway_lambda_handler(event:, context:)
-  $logger.debug("Received Slack API event from API Gateway:\n#{event.ai}")
+  $logger.debug("Received Slack API event from API Gateway:\n#{JSON.pretty_generate(event)}")
 
   # We need to examine the Slack message to see if it's a URL verification
   # request or a message event.  The Slack event is passed as a JSON string

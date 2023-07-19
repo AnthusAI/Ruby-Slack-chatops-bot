@@ -1,0 +1,6 @@
+# AWS SAM CLI expects to find a Gemfile in the codeUri folder of each
+# function, even if you don't really need one because your dependencies
+# come through a Lambda layer. This is a dummy Gemfile that just specifies
+# the Ruby version.
+source "https://rubygems.org"
+ruby '~> 2.7.0'

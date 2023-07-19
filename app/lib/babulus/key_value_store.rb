@@ -1,5 +1,5 @@
 require 'aws-sdk-dynamodb'
-require_relative 'helper'
+require 'babulus'
 
 class KeyValueStore
   def initialize

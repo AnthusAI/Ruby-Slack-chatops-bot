@@ -1,8 +1,6 @@
 require 'aws-sdk-ssm'
 require 'aws-sdk-dynamodb'
-require_relative 'helper'
-require_relative 'openai_token_estimator'
-require_relative 'cloudwatch_metrics'
+require 'babulus'
 
 class SlackConversationHistory
   def initialize(channel_id:)

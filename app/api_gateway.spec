@@ -1,6 +1,8 @@
 require 'rspec'
 require 'aws-sdk-sqs'
-require_relative 'lib/spec_helper'
+
+$LOAD_PATH.unshift File.expand_path('./lib/', __dir__)
+require 'babulus/spec_helper'
 require_relative 'api_gateway'
 
 ENV['AWS_RESOURCE_NAME'] = 'Babulus'

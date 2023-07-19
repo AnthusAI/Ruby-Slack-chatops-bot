@@ -1,7 +1,6 @@
 require 'time'
 require 'aws-sdk-cloudwatch'
-require_relative '../lib/cloudwatch_metrics'
-require_relative '../lib/configuration_setting'
+require 'babulus'
 require 'active_support/core_ext/integer/time'
 
 class CheckBotHealth < Function
@@ -59,7 +58,7 @@ class CheckBotHealth < Function
 
   def execute(arguments)
 
-    $logger.info "Getting bot health monitoring information: #{arguments.ai}"
+    $logger.info "Getting bot health monitoring information:\n#{JSON.pretty_generate(arguments)}"
 
     # The default time range is the last hour, with a period of one minute.
     seconds_ago = 60 * 60
@@ -252,7 +251,7 @@ class CheckBotHealth < Function
       }
 
     end.tap do |result|
-      $logger.debug "Result: #{result.ai}"
+      $logger.debug "Result: #{JSON.pretty_generate(result)}"
     end
   end
 

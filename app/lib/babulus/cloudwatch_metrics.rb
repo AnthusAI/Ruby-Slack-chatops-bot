@@ -1,4 +1,4 @@
-require_relative 'helper'
+require 'babulus'
 require 'aws-sdk-cloudwatch'
 require 'active_support/core_ext/integer/time'
 

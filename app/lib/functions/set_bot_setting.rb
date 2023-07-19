@@ -1,4 +1,4 @@
-require_relative '../lib/helper.rb'
+require 'babulus'
 
 class SetBotSetting < Function
 
@@ -27,7 +27,7 @@ class SetBotSetting < Function
   end
 
   def execute(arguments)
-    $logger.debug "Setting bot configuration setting: #{arguments.ai}"
+    $logger.debug "Setting bot configuration setting:\n#{JSON.pretty_generate(arguments)}"
     new_setting = Configuration::Setting.
       find(key: arguments['key']).set(value: arguments['value'])
 

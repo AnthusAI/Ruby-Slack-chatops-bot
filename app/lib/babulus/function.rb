@@ -1,5 +1,5 @@
 require 'active_support'
-require_relative 'helper'
+require 'babulus'
 
 class Function
 
@@ -33,11 +33,15 @@ class Function
     @@instances ||= load_instances(response_channel: response_channel)
   end
 
+  def self.instances
+    @@instances
+  end
+
   def self.definitions
     @@instances.map do |function|
       function.definition
     end.tap do |definitions|
-      $logger.debug "Function definitions:\n#{definitions.ai}"
+      $logger.debug "Function definitions:\n#{JSON.pretty_generate(definitions)}"
     end
   end
 

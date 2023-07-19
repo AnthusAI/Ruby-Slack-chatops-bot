@@ -96,7 +96,7 @@ Resources:
         - '${Prefix}-api-gateway-handler-${Environment}'
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
-      CodeUri: ./
+      CodeUri: ./app
       Handler: api_gateway.api_gateway_lambda_handler
       Runtime: ruby2.7
       Layers:
@@ -181,7 +181,7 @@ Resources:
         - '${Prefix}-slack-event-processor-${Environment}'
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
-      CodeUri: ./
+      CodeUri: ./app
       Handler: sqs_message_processor.sqs_message_processor_lambda_handler
       Runtime: ruby2.7
       Layers:
@@ -261,7 +261,7 @@ Resources:
         - '${Prefix}-handle-alarm-notifications-${Environment}'
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
-      CodeUri: ./
+      CodeUri: ./app
       Handler: handle_alarm_notifications.handle_alarm_notifications_lambda_handler
       Runtime: ruby2.7
       Layers:

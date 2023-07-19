@@ -1,4 +1,5 @@
-require_relative '../lib/spec_helper.rb'
+require 'babulus/spec_helper'
+
 require_relative 'get_bot_setting.rb'
 require 'aws-sdk-dynamodb'
 

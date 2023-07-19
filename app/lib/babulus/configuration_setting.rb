@@ -1,5 +1,4 @@
-require_relative 'helper'
-require_relative 'key_value_store'
+require 'babulus'
 require 'active_support'
 
 module Configuration

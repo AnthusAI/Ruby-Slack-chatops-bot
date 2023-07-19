@@ -1,12 +1,13 @@
 require 'json'
-require_relative 'lib/helper'
-require_relative 'lib/slack_events_api'
+
+$LOAD_PATH.unshift('./lib/')
+require 'babulus'
 
 def sqs_message_processor_lambda_handler(event:, context:)
   $logger.debug("Received event from Lambda:\n#{JSON.pretty_generate(event)}")
 
   event['Records'].each do |record|
-    $logger.debug("Processing SQS message: #{record.ai}")
+    $logger.debug("Processing SQS message:\n#{JSON.pretty_generate(record)}")
     SlackEventsAPIHandler.new(record['body']).dispatch
   end
 

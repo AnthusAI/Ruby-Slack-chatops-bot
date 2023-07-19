@@ -26,7 +26,7 @@ class SlackChannel
       client.chat_postMessage(channel: @channel, text: text).
         tap do |response|
           $logger.info(
-            "Sent message to Slack on channel #{@channel}: #{response.inspect}")
+            "Sent message to Slack on channel #{@channel}:\n#{JSON.pretty_generate(response)}")
           @cloudwatch_metrics.send_metric_reading(
             metric_name: "Slack Messages Sent",
             value: 1,

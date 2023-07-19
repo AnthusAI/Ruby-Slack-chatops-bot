@@ -132,6 +132,7 @@ describe 'OpenAI' do
     allow_any_instance_of(KeyValueStore).
       to receive(:get).with(key: 'temperature').
       and_return('0.5')
+    allow(response_channel).to receive(:update_status_emoji)
   end
 
   describe '#build_chat_messages_list' do
@@ -191,6 +192,109 @@ describe 'OpenAI' do
     end
 
   end
+
+  describe '#get_response' do
+
+    let(:key_value_store) { instance_double(KeyValueStore) }
+    let(:cloudwatch_metrics) { instance_double(CloudWatchMetrics) }
+
+    before do
+      allow(KeyValueStore).to receive(:new).and_return(key_value_store)
+      allow(key_value_store).to receive(:get).with(key: 'model').
+        and_return('gpt-3.5-turbo-0613')
+      allow(key_value_store).to receive(:get).with(key: 'temperature').
+        and_return('0.5')
+
+      allow(CloudWatchMetrics).to receive(:new).and_return(cloudwatch_metrics)
+      # allow(cloudwatch_metrics).to receive(:put_metric_data)
+      allow(cloudwatch_metrics).to receive(:send_metric_reading).
+        and_return(true)
+      
+      stub_request(:post, "https://api.openai.com/v1/chat/completions").
+        to_return(status: 200, headers: {}, body: <<~JSON
+          {
+            "choices": [
+              {
+                "message": {
+                  "content": "Hello, World!"
+                }
+              }
+            ],
+            "usage": {
+              "prompt_tokens": 13,
+              "completion_tokens": 42,
+              "total_tokens": 55
+            }
+          }
+          JSON
+        )
+    end
+
+    it 'generates a response' do
+      gpt = GPT.new(
+        slack_events_api_handler: slack_events_api_handler,
+        response_channel: response_channel
+      )
+
+      expect(gpt.get_response(
+        conversation_history: conversation_history)).to be_a(String)
+    end
+
+    it 'generates a response with a function' do
+      stub_request(:post, "https://api.openai.com/v1/chat/completions").
+        to_return(
+          {
+            status: 200, headers: {}, body: <<~'JSON'
+            {
+              "choices": [
+                {
+                  "message": {
+                    "function_call": {
+                      "name": "get_bot_setting",
+                      "arguments": "{ \"key\": \"model\" }"
+                    }
+                  }
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 13,
+                "completion_tokens": 42,
+                "total_tokens": 55
+              }
+            }
+            JSON
+          },
+          {
+            status: 200, headers: {}, body: <<~'JSON'
+            {
+              "choices": [
+                {
+                  "message": {
+                    "content": "success!"
+                  }
+                }
+              ],
+              "usage": {
+                "prompt_tokens": 13,
+                "completion_tokens": 42,
+                "total_tokens": 55
+              }
+            }
+            JSON
+          }
+        )
+
+      gpt = GPT.new(
+        slack_events_api_handler: slack_events_api_handler,
+        response_channel: response_channel
+      )
+    
+      expect(gpt.get_response(
+        conversation_history: conversation_history)).to eq('success!')
+    end
+    
+  end
+
 end
 
 def sample_lines

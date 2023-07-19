@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-task :watch_specs do
+task :watch do
   exec 'bundle exec guard'
 end
 

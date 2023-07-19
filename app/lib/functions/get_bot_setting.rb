@@ -1,4 +1,4 @@
-require_relative '../lib/helper.rb'
+require 'babulus'
 
 class GetBotSetting < Function
 
@@ -25,12 +25,12 @@ class GetBotSetting < Function
 
   def execute(arguments)
 
-    $logger.info "Getting bot setting information: #{arguments.ai}"
+    $logger.info "Getting bot setting information:\n#{JSON.pretty_generate(arguments)}"
 
     Configuration::Setting.find(key: arguments['key']).get
 
   end.tap do |result|
-    $logger.debug "Result: #{result.ai}"
+    $logger.debug "Result: #{JSON.pretty_generate(result)}"
   end
 
 end
