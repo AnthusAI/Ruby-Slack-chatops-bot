@@ -2,9 +2,7 @@ name: Ruby
 
 on:
   push:
-    branches: [ $default-branch, "github-actions" ]
   pull_request:
-    branches: [ $default-branch, "github-actions" ]
 
 permissions:
   contents: read
@@ -18,7 +16,7 @@ jobs:
         ruby-version: ['2.7']
 
     steps:
-    - name: Checkout repository
+    - name: Check out repository
       uses: actions/checkout@v2
     - uses: actions/cache@v3
       with:
@@ -26,16 +24,6 @@ jobs:
         key: bundle-use-ruby-${{ matrix.ruby-version }}-${{ hashFiles('dependencies-layer/Gemfile.lock') }}
         restore-keys: |
           bundle-use-ruby-${{ matrix.ruby-version }}-
-    - name: Check current directory
-      run: |
-        pwd
-        ls -alth
-    - name: Check current directory
-      run: ls -alth /home/runner/work/
-    - name: Check current directory
-      run: ls -alth /home/runner/work/Babulus
-    - name: Check current directory
-      run: ls -alth /home/runner/work/Babulus/Babulus
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
