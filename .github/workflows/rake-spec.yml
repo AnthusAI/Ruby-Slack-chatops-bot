@@ -28,9 +28,12 @@ jobs:
       run: |
         pwd
         ls -alth
-        ls -alth /home/runner/work/
-        ls -alth /home/runner/work/Babulus
-        ls -alth /home/runner/work/Babulus/Babulus
+    - name: Check current directory
+      run: ls -alth /home/runner/work/
+    - name: Check current directory
+      run: ls -alth /home/runner/work/Babulus
+    - name: Check current directory
+      run: ls -alth /home/runner/work/Babulus/Babulus
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
