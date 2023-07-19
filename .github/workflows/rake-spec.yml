@@ -27,7 +27,10 @@ jobs:
     - name: Check current directory
       run: |
         pwd
-        ls -l
+        ls -alth
+        ls -alth /home/runner/work/
+        ls -alth /home/runner/work/Babulus
+        ls -alth /home/runner/work/Babulus/Babulus
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
