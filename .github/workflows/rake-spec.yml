@@ -1,10 +1,3 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-# This workflow will download a prebuilt Ruby version, install dependencies and run tests with Rake
-# For more information see: https://github.com/marketplace/actions/setup-ruby-jruby-and-truffleruby
-
 name: Ruby
 
 on:
@@ -28,12 +21,16 @@ jobs:
     - uses: actions/cache@v3
       with:
         path: vendor/bundle
-        key: bundle-use-ruby-${{ matrix.ruby-version }}-${{ hashFiles('**/Gemfile.lock') }}
+        key: bundle-use-ruby-${{ matrix.ruby-version }}-${{ hashFiles('dependencies-layer/Gemfile.lock') }}
         restore-keys: |
           bundle-use-ruby-${{ matrix.ruby-version }}-
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
     - name: Bundle install
       run: |
         bundle config path vendor/bundle
-        bundle install --jobs 4 --retry 3
+        bundle install --gemfile=dependencies-layer/Gemfile --jobs 4 --retry 3
     - name: Run tests
       run: bundle exec rake spec
