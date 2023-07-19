@@ -1,14 +1,6 @@
-# Slack to OpenAI Gateway
+# Babulus
 
-This Ruby code packaged as a serverless AWS SAM app serves as a bridge between Slack and the OpenAI API, allowing a group of users to interact with GPT-4 via a shared Slack channel. This opens up exciting possibilities for collaborative conversations with AI in a group setting.
-
-### Update
-
-We have now implemented basic interaction with the OpenAI API. A separate GPT class has been created to process Slack conversation history into OpenAI chat message lists and to send the OpenAI API requests asynchronously.
-
-### Future Work
-
-Now that it works, it's time to play with function calling to make it do useful things!
+A serverless infrastructure-as-code artificial-intelligence agent that can report on your CloudWatch metrics and alarms via chat through Slack using the OpenAI chat API's function-calling features.  It has a key-value store for settings and cached stuff in DynamoDB and a message history cache for storing token estimates.  It includes a CloudWatch dashboard showing high-level application metrics and it can show you metric widget images from that dashboard if you ask in the chat.  These features are demonstrations of how to use the function plugin system to give the agent access to your own app's CloudWatch metrics and alerts so that you can set up a serverless copilot for your app.
 
 ## Overview
 
