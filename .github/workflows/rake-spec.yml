@@ -24,6 +24,10 @@ jobs:
         key: bundle-use-ruby-${{ matrix.ruby-version }}-${{ hashFiles('dependencies-layer/Gemfile.lock') }}
         restore-keys: |
           bundle-use-ruby-${{ matrix.ruby-version }}-
+    - name: Check current directory
+      run: |
+        pwd
+        ls -l
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
