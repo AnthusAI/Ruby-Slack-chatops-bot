@@ -8,4 +8,17 @@ Gem::Specification.new do |s|
   s.require_paths = ['app/lib']
   s.homepage      = "https://github.com/endymion/Babulus"
   s.license       = "MIT"
+
+  s.add_dependency 'awesome_print', '1.9.2'
+  s.add_dependency 'activesupport', '7.0.5.1'
+
+  s.add_dependency 'aws-sdk-cloudwatch', '1.76.0'
+  s.add_dependency 'aws-sdk-core', '3.176.0'
+  s.add_dependency 'aws-sdk-dynamodb', '1.88.0'
+  s.add_dependency 'aws-sdk-secretsmanager', '1.78.0'
+  s.add_dependency 'aws-sdk-sqs', '1.59.0'
+  s.add_dependency 'aws-sdk-ssm', '1.154.0'
+
+  s.add_development_dependency 'pry', '~> 0.14.1'
+  
 end
