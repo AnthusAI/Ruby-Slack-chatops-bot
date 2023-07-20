@@ -106,7 +106,8 @@ describe 'OpenAI' do
   let(:ssm_client) { instance_double(Aws::SSM::Client) }
   let(:secretsmanager_client) { instance_double(Aws::SecretsManager::Client) }
   let(:default_openai_system_prompt) {
-    File.read(File.join(__dir__, '..', 'default_openai_system_prompt.txt'))
+    File.read(File.join(__dir__, '..', '..',
+      'default_openai_system_prompt.txt'))
   }
 
   before do

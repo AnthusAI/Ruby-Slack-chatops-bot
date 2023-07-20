@@ -20,8 +20,7 @@ class Function
     @@instances = []
 
     # Load function plugins.
-    Dir.glob(File.join(__dir__,
-      '../functions/**/*.rb')).each { |f| require f }
+    Dir.glob(File.join('functions/**/*.rb')).each { |f| require f }
 
     # Instantiate each function class.
 
