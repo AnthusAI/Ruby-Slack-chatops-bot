@@ -1,6 +1,8 @@
 require_relative 'spec_helper'
 require_relative 'openai_chat_bot'
 
+module Babulus
+
 describe 'OpenAI' do
   let(:slack_events_api_handler) { instance_double('SlackEventsAPIHandlerHandler') }
   let(:response_channel) { instance_double(ResponseChannel) }
@@ -296,6 +298,8 @@ describe 'OpenAI' do
   end
 
 end
+
+end # module Babulus
 
 def sample_lines
   File.read(__FILE__).split("\n__END__\n", 2)[1].split("\n")

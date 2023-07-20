@@ -3,6 +3,8 @@ require_relative 'slack_events_api'
 
 ENV['SLACK_APP_ID'] = 'A05D7UH7GHH'
 
+module Babulus
+
 describe 'SlackEventsAPIHandler' do
   let(:channel_id) { 'C01HYM7S9PD' }
   let(:bot_id) { 'U01J218HDYS' }
@@ -427,3 +429,5 @@ describe 'SlackEventsAPIHandler' do
   end
   
 end
+
+end # module Babulus

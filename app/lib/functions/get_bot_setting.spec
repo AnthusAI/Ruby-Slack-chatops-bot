@@ -22,7 +22,7 @@ RSpec.describe GetBotSetting do
 
   describe '.execute' do
     it 'gets the current model setting' do
-      allow_any_instance_of(KeyValueStore).
+      allow_any_instance_of(Babulus::KeyValueStore).
         to receive(:get).with(key: 'model').
         and_return('your_value')
       result = GetBotSetting.new.execute({ 'key' => 'model' })

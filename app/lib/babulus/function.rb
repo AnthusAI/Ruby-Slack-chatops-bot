@@ -1,6 +1,8 @@
 require 'active_support'
 require 'babulus'
 
+module Babulus
+
 class Function
 
   # Class methods, for loading the instances.
@@ -25,7 +27,7 @@ class Function
 
     ObjectSpace.each_object(Class) do |function_class|
       # Instantiate each function class, if it's a subclass of Function.
-      if function_class.superclass.to_s.eql? 'Function'
+      if function_class.superclass.to_s.eql? 'Babulus::Function'
         instances <<
           function_class.new(response_channel: response_channel)
       end
@@ -49,7 +51,9 @@ class Function
   # Instance methods.
 
   def name
-    ActiveSupport::Inflector.underscore self.class.to_s
+    ActiveSupport::Inflector.underscore self.class.to_s.gsub(/^.*\:/,'')
   end
 
 end
+
+end # module Babulus

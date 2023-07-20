@@ -1,6 +1,6 @@
 require 'babulus'
 
-class GetBotSetting < Function
+class GetBotSetting < Babulus::Function
 
   def definition
     {
@@ -27,7 +27,7 @@ class GetBotSetting < Function
 
     $logger.info "Getting bot setting information:\n#{JSON.pretty_generate(arguments)}"
 
-    Configuration::Setting.find(key: arguments['key']).get
+    Babulus::Configuration::Setting.find(key: arguments['key']).get
 
   end.tap do |result|
     $logger.debug "Result: #{JSON.pretty_generate(result)}"

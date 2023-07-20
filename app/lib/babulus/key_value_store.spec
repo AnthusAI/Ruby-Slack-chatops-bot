@@ -1,6 +1,8 @@
 require 'aws-sdk-dynamodb'
 require_relative 'key_value_store'
 
+module Babulus
+
 RSpec.describe KeyValueStore do
   let(:dynamodb_client) { instance_double(Aws::DynamoDB::Client) }
   let(:table_name) { 'babulus-key-value-store-development' }
@@ -76,3 +78,5 @@ RSpec.describe KeyValueStore do
   end
 
 end
+
+end # module Babulus

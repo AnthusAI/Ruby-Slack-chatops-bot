@@ -2,6 +2,8 @@ require 'aws-sdk-ssm'
 require 'aws-sdk-dynamodb'
 require 'babulus'
 
+module Babulus
+
 class SlackConversationHistory
   def initialize(channel_id:)
     @channel_id = channel_id
@@ -117,3 +119,5 @@ class SlackConversationHistory
   end
 
 end
+
+end # module Babulus

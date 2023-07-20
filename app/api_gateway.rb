@@ -10,7 +10,7 @@ def api_gateway_lambda_handler(event:, context:)
   # We need to examine the Slack message to see if it's a URL verification
   # request or a message event.  The Slack event is passed as a JSON string
   # in the body of the Lambda event.
-  slack_event_handler = SlackEventsAPIHandler.new(event['body'])
+  slack_event_handler = Babulus::SlackEventsAPIHandler.new(event['body'])
 
   # We must respond immediately, either way.  But, when it's a URL verification
   # request, we must respond with the challenge value.  And, when it's a message

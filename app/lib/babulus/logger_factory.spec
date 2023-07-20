@@ -1,6 +1,8 @@
 require_relative 'spec_helper.rb'
 require_relative 'logger_factory.rb'
 
+module Babulus
+
 describe LoggerFactory do
 
   before do
@@ -39,3 +41,5 @@ describe LoggerFactory do
   end
 
 end
+
+end # module Babulus

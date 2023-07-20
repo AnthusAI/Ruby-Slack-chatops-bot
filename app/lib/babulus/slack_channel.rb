@@ -1,8 +1,9 @@
 require 'logger'
 require 'mime/types'
 require 'slack-ruby-client'
-require_relative 'cloudwatch_metrics'
-require_relative 'configuration_setting'
+require 'babulus'
+
+module Babulus
 
 class SlackChannel
 
@@ -114,3 +115,5 @@ class SlackChannel
   end
 
 end
+
+end # module Babulus

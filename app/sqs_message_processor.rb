@@ -8,7 +8,7 @@ def sqs_message_processor_lambda_handler(event:, context:)
 
   event['Records'].each do |record|
     $logger.debug("Processing SQS message:\n#{JSON.pretty_generate(record)}")
-    SlackEventsAPIHandler.new(record['body']).dispatch
+    Babulus::SlackEventsAPIHandler.new(record['body']).dispatch
   end
 
   {

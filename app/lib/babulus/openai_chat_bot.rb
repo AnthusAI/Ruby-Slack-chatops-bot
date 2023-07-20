@@ -6,6 +6,7 @@ require 'active_support'
 require 'openai'
 require 'babulus'
 
+module Babulus
 class GPT
 
   @@open_ai_models = {
@@ -407,5 +408,7 @@ class GPT
       unit: 'Count'
     )
   end
+
+end
 
 end

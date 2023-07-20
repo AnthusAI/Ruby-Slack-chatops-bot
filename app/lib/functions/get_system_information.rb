@@ -1,4 +1,4 @@
-class GetSystemMonitoringInformation < Function
+class GetSystemMonitoringInformation < Babulus::Function
 
   def definition
     {

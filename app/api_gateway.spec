@@ -70,7 +70,7 @@ describe 'lambda_handler' do
 
     before do
       allow(sqs_client).to receive(:send_message).and_return(true)
-      allow_any_instance_of(SlackEventsAPIHandler).to receive(
+      allow_any_instance_of(Babulus::SlackEventsAPIHandler).to receive(
         :event_needs_processing?
       ).and_return(true)
     end

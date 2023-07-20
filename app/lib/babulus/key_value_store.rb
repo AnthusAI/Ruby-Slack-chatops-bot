@@ -1,6 +1,8 @@
 require 'aws-sdk-dynamodb'
 require 'babulus'
 
+module Babulus
+
 class KeyValueStore
   def initialize
     @table_name = ENV['KEY_VALUE_STORE_TABLE']
@@ -58,3 +60,5 @@ class KeyValueStore
   end
 
 end
+
+end # module Babulus

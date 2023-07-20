@@ -6,6 +6,8 @@ require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 require 'active_support'
 require 'babulus'
 
+module Babulus
+
 class SlackEventsAPIHandler
   attr_reader :app_id
 
@@ -245,3 +247,5 @@ class SlackEventsAPIHandler
   end
   
 end
+
+end # module Babulus

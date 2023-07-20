@@ -2,6 +2,8 @@ $LOAD_PATH.unshift File.expand_path('./lib/', __dir__)
 require 'babulus/spec_helper'
 require_relative 'sqs_message_processor'
 
+module Babulus
+
 describe 'SlackEventsAPIHandler' do
   let(:event_body) do
     {
@@ -30,3 +32,5 @@ describe 'SlackEventsAPIHandler' do
     sqs_message_processor_lambda_handler(event: lambda_event, context: {})
   end
 end
+
+end # module Babulus

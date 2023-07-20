@@ -1,8 +1,8 @@
 require 'logger'
 require 'mime/types'
-require_relative 'slack_channel'
-require_relative 'cloudwatch_metrics'
-require_relative 'configuration_setting'
+require 'babulus'
+
+module Babulus
 
 class ResponseChannel < SlackChannel
 
@@ -48,3 +48,5 @@ class ResponseChannel < SlackChannel
   end
 
 end
+
+end # module Babulus

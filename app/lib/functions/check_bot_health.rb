@@ -3,9 +3,9 @@ require 'aws-sdk-cloudwatch'
 require 'babulus'
 require 'active_support/core_ext/integer/time'
 
-class CheckBotHealth < Function
+class CheckBotHealth < Babulus::Function
 
-  @@cloudwatch_metrics = CloudWatchMetrics.new
+  @@cloudwatch_metrics = Babulus::CloudWatchMetrics.new
 
   def definition
     description = <<~DESCRIPTION

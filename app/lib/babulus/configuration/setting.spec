@@ -1,12 +1,14 @@
-require_relative 'spec_helper.rb'
-require_relative 'configuration_setting.rb'
+require_relative '../spec_helper.rb'
+require_relative 'setting.rb'
 
 ENV['ENVIRONMENT'] = 'development'
 ENV['AWS_RESOURCE_NAME'] = 'Slack Bot'
 
 WebMock.allow_net_connect!
 
-RSpec.describe Configuration::Setting do
+module Babulus
+
+RSpec.describe Babulus::Configuration::Setting do
 
   let(:table_name) { 'Babulus-key-value-store-development' }
   
@@ -66,5 +68,7 @@ RSpec.describe Configuration::Setting do
     end
 
   end
+
+end
 
 end

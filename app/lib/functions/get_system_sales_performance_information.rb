@@ -1,4 +1,4 @@
-class GetSystemSalesPerformanceInformation < Function
+class GetSystemSalesPerformanceInformation < Babulus::Function
 
   def definition
     {

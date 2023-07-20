@@ -1,5 +1,7 @@
 require 'babulus'
 
+module Babulus
+
 class OpenAITokenEstimator
 
   def self.estimate_token_count(text, method = 'max')
@@ -44,3 +46,5 @@ class OpenAITokenEstimator
   end
 
 end
+
+end # module Babulus

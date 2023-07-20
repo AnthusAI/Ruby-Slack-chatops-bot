@@ -1,6 +1,6 @@
 require 'babulus'
 
-class SetBotSetting < Function
+class SetBotSetting < Babulus::Function
 
   def definition
     {
