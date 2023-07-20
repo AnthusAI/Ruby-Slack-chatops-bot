@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'aws-sdk-sqs', '1.59.0'
   s.add_dependency 'aws-sdk-ssm', '1.154.0'
   s.add_dependency 'ruby-openai', '4.2.0'
+  s.add_dependency 'mime-types', '3.4.1'
 
   s.add_development_dependency 'pry', '~> 0.14.1'
   
