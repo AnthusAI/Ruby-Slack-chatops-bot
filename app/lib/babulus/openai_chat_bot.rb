@@ -33,7 +33,7 @@ class GPT
     @slack_events_api_handler = slack_events_api_handler
     @response_channel = response_channel
 
-    Function.load(response_channel: response_channel)
+    Function.load(response_channel: @response_channel)
 
     aws_resource_prefix = ENV['AWS_RESOURCE_PREFIX'] || 'Babulus'
     environment =         ENV['ENVIRONMENT']         || 'development'

@@ -36,7 +36,7 @@ class SlackConversationHistory
 
     if response['ok']
       messages = response['messages']
-      $logger.debug("Fetched conversation history for channel #{@channel_id}:\n#{JSON.pretty_generate(messages.inspect)}")
+      # $logger.debug("Fetched conversation history for channel #{@channel_id}:\n#{JSON.pretty_generate(messages.inspect)}")
 
       messages.reject { |message| 
         @response_slack_message &&

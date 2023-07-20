@@ -83,10 +83,12 @@ class SlackChannel
   end
 
   def upload_pending_file_attachments
+    $logger.info("Uploading pending file attachments to Slack on channel #{@channel}")
     return if @attachments.nil?
 
     # Upload each file and remove the attachment from the list.
     @attachments.keys.each do |attachment_key|
+      $logger.debug("Uploading file attachment #{attachment_key} to Slack on channel #{@channel}")
       attachment = @attachments.delete(attachment_key)
       upload_file(
         file_path: attachment[:file_path],

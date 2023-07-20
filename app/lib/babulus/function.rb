@@ -11,26 +11,27 @@ class Function
   end
 
   def self.load(response_channel:)
-    def self.load_instances(response_channel:)
-      instances = []
+    $logger.debug 'Loading function instances.'
+    
+    # Don't memoize this because you want fresh function instances with
+    # a new response channel for each new user message request.
+    @@instances = []
 
-      # Load function plugins.
-      Dir.glob(File.join(__dir__,
-        '../functions/**/*.rb')).each { |f| require f }
+    # Load function plugins.
+    Dir.glob(File.join(__dir__,
+      '../functions/**/*.rb')).each { |f| require f }
 
-      # Instantiate each function class.
+    # Instantiate each function class.
 
-      ObjectSpace.each_object(Class) do |function_class|
-        # Instantiate each function class, if it's a subclass of Function.
-        if function_class.superclass.to_s.eql? 'Function'
-          instances <<
-            function_class.new(response_channel: response_channel)
-        end
+    ObjectSpace.each_object(Class) do |function_class|
+      # Instantiate each function class, if it's a subclass of Function.
+      if function_class.superclass.to_s.eql? 'Function'
+        instances <<
+          function_class.new(response_channel: response_channel)
       end
-
-      instances
     end
-    @@instances ||= load_instances(response_channel: response_channel)
+
+    @@instances
   end
 
   def self.instances
