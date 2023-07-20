@@ -1,6 +1,5 @@
 require 'logger'
 require 'mime/types'
-require 'slack-ruby-client'
 require 'babulus'
 
 module Babulus
