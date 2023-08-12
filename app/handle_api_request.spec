@@ -50,7 +50,7 @@ describe 'lambda_handler' do
     it 'responds with url confirmation' do
       allow(logger).to receive(:info)
       expect(logger).to receive(:info).with(/URL verification/)
-      response = handle_aws_lambda_event(event: event, context: {})
+      response = handle_aws_lambda_event_for_api_request(event: event, context: {})
       expect(response[:statusCode]).to eq(200)
       expect(response[:body]).to eq('test_challenge')
     end
@@ -78,7 +78,7 @@ describe 'lambda_handler' do
     it 'responds with Message received' do
       allow(logger).to receive(:info)
       expect(logger).to receive(:info).with(/Enqueing SQS message/)
-      response = handle_api_request(event: event, context: {})
+      response = handle_aws_lambda_event_for_api_request(event: event, context: {})
       expect(response[:statusCode]).to eq(200)
       expect(response[:body]).to eq('Message received.')
     end
@@ -91,7 +91,7 @@ describe 'lambda_handler' do
           message_group_id: nil
         )
       )
-      handle_api_request(event: event, context: {})
+      handle_aws_lambda_event_for_api_request(event: event, context: {})
     end
   end
 end

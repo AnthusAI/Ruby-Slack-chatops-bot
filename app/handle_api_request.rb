@@ -4,7 +4,7 @@ require 'aws-sdk-sqs'
 $LOAD_PATH.unshift('./lib/')
 require 'babulus'
 
-def handle_aws_lambda_event(event:, context:)
+def handle_aws_lambda_event_for_api_request(event:, context:)
   $logger.debug("Received Slack API event from API Gateway:\n#{JSON.pretty_generate(event)}")
   $logger.debug("Parsed body:\n#{JSON.pretty_generate(JSON.parse(event['body']))}")
 

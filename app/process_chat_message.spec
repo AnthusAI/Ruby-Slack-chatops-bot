@@ -29,7 +29,7 @@ describe 'SlackEventsAPIHandler' do
       and_return(slack_event)
     expect(slack_event).to receive(:dispatch)
 
-    handle_aws_lambda_event(event: lambda_event, context: {})
+    handle_aws_lambda_event_for_queued_chat_message(event: lambda_event, context: {})
   end
 end
 

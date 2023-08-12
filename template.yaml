@@ -97,7 +97,7 @@ Resources:
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       CodeUri: ./app
-      Handler: handle_api_request.handle_aws_lambda_event
+      Handler: handle_api_request.handle_aws_lambda_event_for_api_request
       Runtime: ruby2.7
       Layers:
         - !Ref DependenciesLayer
@@ -188,7 +188,7 @@ Resources:
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       CodeUri: ./app
-      Handler: process_chat_message.handle_aws_lambda_event
+      Handler: process_chat_message.handle_aws_lambda_event_for_queued_chat_message
       Runtime: ruby2.7
       Layers:
         - !Ref DependenciesLayer
