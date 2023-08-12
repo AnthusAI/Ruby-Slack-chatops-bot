@@ -3,7 +3,7 @@ require 'aws-sdk-sqs'
 
 $LOAD_PATH.unshift File.expand_path('./lib/', __dir__)
 require 'babulus/spec_helper'
-require_relative 'api_gateway'
+require_relative 'handle_api_request'
 
 ENV['AWS_RESOURCE_NAME'] = 'Babulus'
 
@@ -50,7 +50,7 @@ describe 'lambda_handler' do
     it 'responds with url confirmation' do
       allow(logger).to receive(:info)
       expect(logger).to receive(:info).with(/URL verification/)
-      response = api_gateway_lambda_handler(event: event, context: {})
+      response = handle_aws_lambda_event(event: event, context: {})
       expect(response[:statusCode]).to eq(200)
       expect(response[:body]).to eq('test_challenge')
     end
@@ -78,7 +78,7 @@ describe 'lambda_handler' do
     it 'responds with Message received' do
       allow(logger).to receive(:info)
       expect(logger).to receive(:info).with(/Enqueing SQS message/)
-      response = api_gateway_lambda_handler(event: event, context: {})
+      response = handle_api_request(event: event, context: {})
       expect(response[:statusCode]).to eq(200)
       expect(response[:body]).to eq('Message received.')
     end
@@ -91,7 +91,7 @@ describe 'lambda_handler' do
           message_group_id: nil
         )
       )
-      api_gateway_lambda_handler(event: event, context: {})
+      handle_api_request(event: event, context: {})
     end
   end
 end

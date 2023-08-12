@@ -5,7 +5,7 @@ require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 
 require 'babulus/logger_factory'
 require 'babulus/key_value_store'
-require 'babulus/function.rb'
+require 'babulus/function'
 require 'babulus/cloudwatch_metrics'
 require 'babulus/configuration/setting'
 require 'babulus/openai_chat_bot'

@@ -3,7 +3,7 @@ require 'json'
 $LOAD_PATH.unshift('./lib/')
 require 'babulus'
 
-def sqs_message_processor_lambda_handler(event:, context:)
+def handle_aws_lambda_event(event:, context:)
   $logger.debug("Received event from Lambda:\n#{JSON.pretty_generate(event)}")
 
   event['Records'].each do |record|

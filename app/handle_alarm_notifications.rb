@@ -2,10 +2,12 @@ require 'json'
 require 'aws-sdk-secretsmanager'
 require 'openai'
 require 'open-uri'
-require_relative 'lib/helper'
-require_relative 'lib/slack_channel'
 
-def handle_alarm_notifications_lambda_handler(event:, context:)
+$LOAD_PATH.unshift('./lib/')
+require 'babulus'
+require 'babulus/slack_channel'
+
+def handle_aws_lambda_event(event:, context:)
   $logger.info("Handling alarm notifications:\n#{JSON.pretty_generate(event)}")
 
   environment =         ENV['ENVIRONMENT'] || 'development'
@@ -26,7 +28,7 @@ def handle_alarm_notifications_lambda_handler(event:, context:)
   
   @open_ai_client = OpenAI::Client.new(access_token: @open_ai_access_token)
   
-  @slack_channel = SlackChannel.new(
+  @slack_channel = Babulus::SlackChannel.new(
     slack_access_token: @slack_access_token,
     channel: 'ticket-driver-copilot-lab')
 

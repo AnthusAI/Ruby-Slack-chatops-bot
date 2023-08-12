@@ -2,25 +2,26 @@ source "https://rubygems.org"
 
 ruby '~> 2.7.0'
 
-gem "aws-sdk-ssm"
-gem "aws-sdk-secretsmanager"
-gem "aws-sdk-sqs"
-gem "aws-sdk-dynamodb"
-gem "aws-sdk-cloudwatch"
-gem "ruby-openai"
-gem "awesome_print"
-gem "activesupport"
-gem "slack-ruby-client"
-gem "mime-types"
+gem "aws-sdk-ssm", ">= 1.154.0"
+gem "aws-sdk-secretsmanager", ">= 1.78.0"
+gem "aws-sdk-sqs", ">= 1.59.0"
+gem "aws-sdk-dynamodb", ">= 1.88.0"
+gem "aws-sdk-cloudwatch", ">= 1.76.0"
+gem "ruby-openai", ">= 4.2.0"
+gem "awesome_print", ">= 1.9.2"
+gem "activesupport", ">= 7.0.5.1"
+gem "slack-ruby-client", ">= 2.1.0"
+gem "mime-types", ">= 3.4.1"
+gem "thor", ">= 1.2.2"
 
 group :test do
-  gem "rake"
-  gem "guard"
-  gem "guard-rake"
-  gem "rspec"
-  gem "rspec-mocks"
-  gem 'webmock'
-  gem 'simplecov', require: false
-  gem "pry"
-  gem "byebug"
+  gem "rake", ">= 13.0.6"
+  gem "guard", ">= 2.18.0"
+  gem "guard-rake", ">= 1.0.0"
+  gem "rspec", ">= 3.12.0"
+  gem "rspec-mocks", ">= 3.12.5"
+  gem 'webmock', '>= 3.18.1'
+  gem 'simplecov', '>= 0.22.0', require: false
+  gem "pry", ">= 0.14.2"
+  gem "byebug", ">= 11.1.3"
 end

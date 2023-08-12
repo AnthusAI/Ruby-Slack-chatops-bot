@@ -97,7 +97,7 @@ Resources:
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       CodeUri: ./app
-      Handler: api_gateway.api_gateway_lambda_handler
+      Handler: handle_api_request.handle_aws_lambda_event
       Runtime: ruby2.7
       Layers:
         - !Ref DependenciesLayer
@@ -113,6 +113,7 @@ Resources:
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           SQS_QUEUE_URL: !Ref SlackEventsQueue
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
+          SLACK_APP_ID: !Ref SlackAppId
       Tracing: Active
       Events:
         EventsAPI:
@@ -162,6 +163,11 @@ Resources:
                 - 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Prefix}-slack-app-access-token-${Environment}-*'
                 - Prefix: !Ref AwsResourcePrefix
                   Environment: !Ref Environment
+          - Sid: CloudWatchPutMetricDataProperty
+            Effect: Allow
+            Action:
+              - cloudwatch:PutMetricData
+            Resource: "*"
 
   SlackEventsQueue:
     Type: AWS::SQS::Queue
@@ -174,7 +180,7 @@ Resources:
       ContentBasedDeduplication: true
       VisibilityTimeout: 300
 
-  SlackEventsAPIHandlerHandlerFunction:
+  ProcessChatMessageFunction:
     Type: AWS::Serverless::Function 
     Properties:
       FunctionName: !Sub
@@ -182,7 +188,7 @@ Resources:
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       CodeUri: ./app
-      Handler: sqs_message_processor.sqs_message_processor_lambda_handler
+      Handler: process_chat_message.handle_aws_lambda_event
       Runtime: ruby2.7
       Layers:
         - !Ref DependenciesLayer
@@ -198,6 +204,7 @@ Resources:
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
           SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
+          SLACK_APP_ID: !Ref SlackAppId
       Tracing: Active
       Events:
         SlackEvent:
@@ -262,7 +269,7 @@ Resources:
         - Prefix: !Ref AwsResourcePrefix
           Environment: !Ref Environment
       CodeUri: ./app
-      Handler: handle_alarm_notifications.handle_alarm_notifications_lambda_handler
+      Handler: handle_alarm_notifications.handle_aws_lambda_event
       Runtime: ruby2.7
       Layers:
         - !Ref DependenciesLayer
@@ -278,6 +285,7 @@ Resources:
           GEM_PATH: /opt/ruby/lib/vendor/bundle/ruby/2.7.0
           KEY_VALUE_STORE_TABLE: !Ref KeyValueStoreDynamoDBTable
           SLACK_CONVERSATION_HISTORY_TABLE: !Ref SlackConversationHistoryTable
+          SLACK_APP_ID: !Ref SlackAppId
       Tracing: Active
       Events:
         SnsTopic:

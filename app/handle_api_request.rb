@@ -4,8 +4,9 @@ require 'aws-sdk-sqs'
 $LOAD_PATH.unshift('./lib/')
 require 'babulus'
 
-def api_gateway_lambda_handler(event:, context:)
+def handle_aws_lambda_event(event:, context:)
   $logger.debug("Received Slack API event from API Gateway:\n#{JSON.pretty_generate(event)}")
+  $logger.debug("Parsed body:\n#{JSON.pretty_generate(JSON.parse(event['body']))}")
 
   # We need to examine the Slack message to see if it's a URL verification
   # request or a message event.  The Slack event is passed as a JSON string
@@ -40,7 +41,7 @@ def api_gateway_lambda_handler(event:, context:)
   sqs.send_message(
     queue_url: ENV['SQS_QUEUE_URL'],
     message_body: event['body'],
-    message_group_id: JSON.parse(event['body'])['event']['client_msg_id']
+    message_group_id: JSON.parse(event['body'])['event']['ts']
   )
 
   # Respond to the Slack API immediately with a 200 OK, once the message

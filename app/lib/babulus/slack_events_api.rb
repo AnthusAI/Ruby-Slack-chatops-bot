@@ -4,6 +4,7 @@ require 'aws-sdk-ssm'
 require 'aws-sdk-secretsmanager'
 require 'awesome_print'; ENV['HOME'] = '/var/task' if ENV['AWS_EXECUTION_ENV']
 require 'active_support'
+require 'slack-ruby-client'
 require 'babulus'
 
 module Babulus
@@ -13,7 +14,7 @@ class SlackEventsAPIHandler
 
   def initialize(slack_event)
     @slack_event = JSON.parse(slack_event)
-    $logger.debug("Handling Slack event:\n#{JSON.pretty_generate(slack_event)}")
+    $logger.debug("Handling Slack event:\n#{JSON.pretty_generate(@slack_event)}")
     @cloudwatch_metrics = CloudWatchMetrics.new
     
     environment =         ENV['ENVIRONMENT'] || 'development'
@@ -235,11 +236,12 @@ class SlackEventsAPIHandler
       )
       bot_info = 
         Slack::Web::Client.new(token: @slack_access_token).bots_info(bot: bot_id)
+        
       bot_info['ok'] ?
         bot_info['bot']['user_id'] :
         log_error_and_return_nil(bot_info['error'])
     end
-  end  
+  end
   
   def log_error_and_return_nil(error)
     $logger.error("Error: #{error}")
