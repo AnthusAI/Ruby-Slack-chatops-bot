@@ -91,7 +91,7 @@ class CheckBotHealth < Babulus::Function
         "summary":
           (
             'My current OpenAI model is: ' +
-            Configuration::Model.new.get +
+            Babulus::Configuration::Model.new.get +
             "\nNumber of AI-powered Slack messages that I sent in the last " +
             time_ago_string +
             ': ' +
