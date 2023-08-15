@@ -99,11 +99,11 @@ name for your environment.
 
 #### Development
 
-    $ sam sync --profile=767678462952_AdministratorAccess --region us-east-1
+    $ sam sync --profile=AdministratorAccess-330731243300 --region us-east-1 --stack-name=babulus-development
 
 ### View logs
 
-    $ sam logs -t --profile=330731243300_AdministratorAccess --region=us-east-1 --stack-name=ruby-slack-openai-chat-bot-development
+    $ sam logs -t --profile=AdministratorAccess-330731243300 --region=us-east-1 --stack-name=babulus-development
 
 ## Development
 
