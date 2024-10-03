@@ -1,4 +1,4 @@
-# Babulus
+# Ruby Slack ChatOps Bot
 
 A babbling bot that can do things for you.  Uses the Open AI chat API with
 function calling.  Currently available through Slack, and soon through
